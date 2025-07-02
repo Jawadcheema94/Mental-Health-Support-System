@@ -56,8 +56,8 @@
 //   }
 // }
 
-
 import 'package:flutter/material.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 class BottomNavBar extends StatefulWidget {
   @override
@@ -106,7 +106,7 @@ class BottomNavBarState extends State<BottomNavBar> {
             icon: Icon(Icons.track_changes), label: 'Analysis'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
-      selectedItemColor: Colors.purple,
+      selectedItemColor: AppTheme.primaryColor,
       unselectedItemColor: Colors.grey,
       showSelectedLabels: false,
       showUnselectedLabels: false,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:myapp/theme/app_theme.dart';
+// import 'package:myapp/services/stripe_service.dart'; // Commented out - Stripe disabled
 
 class OnlineAppointmentScreen extends StatefulWidget {
   final Map<String, dynamic> therapist;
@@ -24,6 +27,10 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
   final TextEditingController notesController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
+
+  // Payment related variables
+  final double appointmentFee = 50.0; // $50 per appointment
+  bool isProcessingPayment = false;
 
   Future<void> _selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -71,12 +78,27 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
       return;
     }
 
+    // Show payment confirmation dialog first
+    final bool? shouldProceed = await _showPaymentConfirmationDialog();
+    if (shouldProceed != true) return;
+
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
+      // Process payment first
+      final bool paymentSuccess = await _processPayment();
+      if (!paymentSuccess) {
+        setState(() {
+          errorMessage = 'Payment failed. Please try again.';
+          isLoading = false;
+        });
+        return;
+      }
+
+      // If payment successful, book the appointment
       final response = await http.post(
         Uri.parse('http://localhost:3000/api/appointments'),
         headers: {'Content-Type': 'application/json'},
@@ -86,20 +108,17 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
           'appointmentDate': selectedDateTime!.toUtc().toIso8601String(),
           'duration': selectedDuration,
           'notes': notesController.text,
+          'type': 'online',
+          'paymentStatus': 'paid',
+          'amount': appointmentFee,
         }),
       );
 
       if (response.statusCode == 201) {
         final appointment = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Online appointment booked with ${widget.therapist['name']}',
-              ),
-            ),
-          );
-          Navigator.pop(context);
+          // Show appointment confirmation with Google Meet link
+          _showAppointmentConfirmation(appointment);
         }
       } else {
         final errorData = jsonDecode(response.body);
@@ -116,6 +135,223 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
         isLoading = false;
       });
     }
+  }
+
+  Future<bool?> _showPaymentConfirmationDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Payment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Appointment Details:'),
+              SizedBox(height: 8),
+              Text('Therapist: ${widget.therapist['name']}'),
+              Text(
+                  'Date: ${DateFormat('MMMM d, yyyy').format(selectedDateTime!)}'),
+              Text('Time: ${DateFormat('h:mm a').format(selectedDateTime!)}'),
+              Text('Duration: $selectedDuration minutes'),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '\$${appointmentFee.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: Text('Proceed to Payment'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _processPayment() async {
+    setState(() {
+      isProcessingPayment = true;
+    });
+
+    try {
+      // COMMENTED OUT: Stripe payment processing
+      // final paymentIntentData = await StripeService.createPaymentIntent(
+      //   amount: appointmentFee,
+      //   currency: 'usd',
+      // );
+
+      // if (paymentIntentData == null) {
+      //   return false;
+      // }
+
+      // final success = await StripeService.processPayment(
+      //   clientSecret: paymentIntentData['clientSecret'],
+      //   email: 'user@example.com', // You should get this from user data
+      // );
+
+      // Simulate successful payment for now
+      await Future.delayed(const Duration(seconds: 2));
+      return true; // Always return true since Stripe is disabled
+    } catch (e) {
+      print('Payment processing error: $e');
+      return false;
+    } finally {
+      setState(() {
+        isProcessingPayment = false;
+      });
+    }
+  }
+
+  void _showAppointmentConfirmation(Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 12),
+              Text('Appointment Confirmed!'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Your online appointment with ${widget.therapist['name']} has been successfully booked.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Appointment Details:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                          'Date: ${DateTime.parse(appointment['appointmentDate']).toLocal().toString().split('.')[0]}'),
+                      Text('Duration: ${appointment['duration']} minutes'),
+                      if (appointment['notes'] != null &&
+                          appointment['notes'].isNotEmpty)
+                        Text('Notes: ${appointment['notes']}'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                if (appointment['meetingLink'] != null)
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.video_call, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text(
+                              'Google Meet Link:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        SelectableText(
+                          appointment['meetingLink'],
+                          style: TextStyle(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Save this link! You\'ll need it to join your appointment.',
+                          style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Copy link to clipboard
+                if (appointment['meetingLink'] != null) {
+                  Clipboard.setData(
+                      ClipboardData(text: appointment['meetingLink']));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Meeting link copied to clipboard!')),
+                  );
+                }
+              },
+              child: Text('Copy Link'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog only
+                // Stay on the current screen (online appointment booking)
+              },
+              child: Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

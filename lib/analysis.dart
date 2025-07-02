@@ -179,8 +179,8 @@
 //   Question({required this.questionText, required this.options});
 // }
 
-
 import 'package:flutter/material.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 class AnxietyDepressionTestScreen extends StatefulWidget {
   const AnxietyDepressionTestScreen({super.key});
@@ -230,7 +230,8 @@ class _AnxietyDepressionTestScreenState
       options: {"Never": 0, "Sometimes": 1, "Often": 2, "Always": 3},
     ),
     Question(
-      questionText: "Do you feel hopeless or have thoughts of self-doubt frequently?",
+      questionText:
+          "Do you feel hopeless or have thoughts of self-doubt frequently?",
       options: {"Never": 0, "Sometimes": 1, "Often": 2, "Always": 3},
     ),
   ];
@@ -285,72 +286,211 @@ class _AnxietyDepressionTestScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        title: const Text("Anxiety & Depression Test"),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text(
-            "Answer the following questions to help us understand your symptoms:",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          ...questions.asMap().entries.map((entry) {
-            int index = entry.key;
-            Question question = entry.value;
-            return _buildQuestionCard(index, question);
-          }),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _calculateResult,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Modern App Bar
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(AppTheme.radiusXL),
+                    bottomRight: Radius.circular(AppTheme.radiusXL),
+                  ),
+                  boxShadow: AppTheme.mediumShadow,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon:
+                          const Icon(Icons.arrow_back_ios, color: Colors.white),
+                    ),
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: Text(
+                        "Anxiety & Depression Test",
+                        style: AppTheme.headingMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: const Text(
-              "Submit",
-              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-            ),
+              const SizedBox(height: AppTheme.spacingL),
+              // Content Area
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingL),
+                      margin: const EdgeInsets.only(bottom: AppTheme.spacingL),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.cardGradient,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppTheme.spacingM),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusRound),
+                            ),
+                            child: Icon(
+                              Icons.psychology_rounded,
+                              color: AppTheme.primaryColor,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.spacingM),
+                          Expanded(
+                            child: Text(
+                              "Answer the following questions to help us understand your symptoms:",
+                              style: AppTheme.bodyLarge.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...questions.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Question question = entry.value;
+                      return _buildQuestionCard(index, question);
+                    }),
+                    const SizedBox(height: AppTheme.spacingL),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _calculateResult,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppTheme.spacingM),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusM),
+                          ),
+                        ),
+                        child: Text(
+                          "Submit Assessment",
+                          style: AppTheme.buttonText.copyWith(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingXL),
+                    if (_showChart) _buildChartSection(),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 30),
-          if (_showChart) _buildChartSection(),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildQuestionCard(int index, Question question) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+      decoration: BoxDecoration(
+        gradient: AppTheme.cardGradient,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.softShadow,
+        border: Border.all(
+          color: AppTheme.primaryColor.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingL),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Q${index + 1}. ${question.questionText}",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingM,
+                vertical: AppTheme.spacingS,
+              ),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              ),
+              child: Text(
+                "Question ${index + 1}",
+                style: AppTheme.bodyMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              question.questionText,
+              style: AppTheme.bodyLarge.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
             ...question.options.entries.map((option) {
-              return RadioListTile<int>(
-                title: Text(option.key),
-                value: option.value,
-                groupValue: _responses[index],
-                onChanged: (value) {
-                  setState(() {
-                    _responses[index] = value!;
-                  });
-                },
+              final isSelected = _responses[index] == option.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primaryColor.withOpacity(0.1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.primaryColor.withOpacity(0.2),
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: RadioListTile<int>(
+                  title: Text(
+                    option.key,
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.textSecondary,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  value: option.value,
+                  groupValue: _responses[index],
+                  activeColor: AppTheme.primaryColor,
+                  onChanged: (value) {
+                    setState(() {
+                      _responses[index] = value!;
+                    });
+                  },
+                ),
               );
             }),
           ],
@@ -363,9 +503,11 @@ class _AnxietyDepressionTestScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text("Your score: $_score/30", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text("Your score: $_score/30",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text("Severity: $_severity", style: TextStyle(fontSize: 16, color: getSeverityColor())),
+        Text("Severity: $_severity",
+            style: TextStyle(fontSize: 16, color: getSeverityColor())),
         const SizedBox(height: 20),
         LinearProgressIndicator(
           value: _score / 30,

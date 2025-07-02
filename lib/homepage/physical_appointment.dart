@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:myapp/theme/app_theme.dart';
+// import 'package:myapp/services/stripe_service.dart'; // Commented out - Stripe disabled
 
 class PhysicalAppointmentScreen extends StatefulWidget {
   final Map<String, dynamic> therapist;
@@ -22,8 +24,13 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
   DateTime? selectedDateTime;
   int? selectedDuration = 60;
   final TextEditingController notesController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
+
+  // Payment related variables
+  final double appointmentFee = 75.0; // $75 for physical appointments
+  bool isProcessingPayment = false;
 
   Future<void> _selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -71,12 +78,27 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
       return;
     }
 
+    // Show payment confirmation dialog first
+    final bool? shouldProceed = await _showPaymentConfirmationDialog();
+    if (shouldProceed != true) return;
+
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
+      // Process payment first
+      final bool paymentSuccess = await _processPayment();
+      if (!paymentSuccess) {
+        setState(() {
+          errorMessage = 'Payment failed. Please try again.';
+          isLoading = false;
+        });
+        return;
+      }
+
+      // If payment successful, book the appointment
       final response = await http.post(
         Uri.parse('http://localhost:3000/api/appointments'),
         headers: {'Content-Type': 'application/json'},
@@ -86,19 +108,18 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
           'appointmentDate': selectedDateTime!.toUtc().toIso8601String(),
           'duration': selectedDuration,
           'notes': notesController.text,
+          'type': 'physical',
+          'location': locationController.text,
+          'paymentStatus': 'paid',
+          'amount': appointmentFee,
         }),
       );
 
       if (response.statusCode == 201) {
+        final appointment = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Physical appointment booked with ${widget.therapist['name']}',
-              ),
-            ),
-          );
-          Navigator.pop(context);
+          // Show appointment confirmation with details
+          _showAppointmentConfirmation(appointment);
         }
       } else {
         final errorData = jsonDecode(response.body);
@@ -115,6 +136,207 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
         isLoading = false;
       });
     }
+  }
+
+  Future<bool?> _showPaymentConfirmationDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Payment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Appointment Details:'),
+              SizedBox(height: 8),
+              Text('Therapist: ${widget.therapist['name']}'),
+              Text(
+                  'Date: ${DateFormat('MMMM d, yyyy').format(selectedDateTime!)}'),
+              Text('Time: ${DateFormat('h:mm a').format(selectedDateTime!)}'),
+              Text('Duration: $selectedDuration minutes'),
+              Text('Type: Physical Appointment'),
+              if (locationController.text.isNotEmpty)
+                Text('Location: ${locationController.text}'),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '\$${appointmentFee.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: Text('Proceed to Payment'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _processPayment() async {
+    setState(() {
+      isProcessingPayment = true;
+    });
+
+    try {
+      // COMMENTED OUT: Stripe payment processing
+      // final paymentIntentData = await StripeService.createPaymentIntent(
+      //   amount: appointmentFee,
+      //   currency: 'usd',
+      // );
+
+      // if (paymentIntentData == null) {
+      //   return false;
+      // }
+
+      // final success = await StripeService.processPayment(
+      //   clientSecret: paymentIntentData['clientSecret'],
+      //   email: 'user@example.com', // You should get this from user data
+      // );
+
+      // Simulate successful payment for now
+      await Future.delayed(const Duration(seconds: 2));
+      return true; // Always return true since Stripe is disabled
+    } catch (e) {
+      print('Payment processing error: $e');
+      return false;
+    } finally {
+      setState(() {
+        isProcessingPayment = false;
+      });
+    }
+  }
+
+  void _showAppointmentConfirmation(Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 12),
+              Text('Appointment Confirmed!'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Your physical appointment with ${widget.therapist['name']} has been successfully booked.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Appointment Details:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                          'Date: ${DateTime.parse(appointment['appointmentDate']).toLocal().toString().split('.')[0]}'),
+                      Text('Duration: ${appointment['duration']} minutes'),
+                      Text('Location: ${widget.therapist['location']}'),
+                      if (appointment['notes'] != null &&
+                          appointment['notes'].isNotEmpty)
+                        Text('Notes: ${appointment['notes']}'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text(
+                            'Important Reminders:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text('• Please arrive 10 minutes early'),
+                      Text('• Bring a valid ID and insurance card'),
+                      Text('• Contact the therapist if you need to reschedule'),
+                      SizedBox(height: 8),
+                      Text(
+                        'Therapist Contact: ${widget.therapist['phone'] ?? 'Contact through app'}',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog only
+                // Stay on the current screen (physical appointment booking)
+              },
+              child: Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -198,6 +420,22 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
                         });
                       },
                       isExpanded: true,
+                    ),
+                    SizedBox(height: isSmallScreen ? 10 : 20),
+                    Text(
+                      'Preferred Location',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 5 : 10),
+                    TextField(
+                      controller: locationController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Enter preferred meeting location...',
+                      ),
                     ),
                     SizedBox(height: isSmallScreen ? 10 : 20),
                     Text(

@@ -237,6 +237,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:myapp/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 // State management for user ID
@@ -345,7 +346,8 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _isLoading ? null : () => _login(context),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Text('Login', style: TextStyle(color: Colors.white)),
@@ -516,7 +518,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mood Tracker'),
-        backgroundColor: Colors.purple,
+        backgroundColor: AppTheme.primaryColor,
       ),
       body: Stack(
         children: [
@@ -587,7 +589,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
                         ? _logMood
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
+                      backgroundColor: AppTheme.primaryColor,
                     ),
                     child: const Text(
                       'Save Mood',
@@ -612,7 +614,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
                                   child: ListTile(
                                     leading: Icon(
                                       _getMoodIcon(mood.mood),
-                                      color: Colors.purple,
+                                      color: AppTheme.primaryColor,
                                     ),
                                     title: Text(mood.mood),
                                     subtitle: Text(
@@ -714,7 +716,7 @@ class SectionTitle extends StatelessWidget {
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.purple,
+          color: AppTheme.primaryColor,
         ),
       ),
     );
@@ -743,7 +745,8 @@ class MoodButton extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: isSelected ? Colors.purple : Colors.grey[200],
+            backgroundColor:
+                isSelected ? AppTheme.primaryColor : Colors.grey[200],
             child: Icon(icon, color: isSelected ? Colors.white : Colors.grey),
           ),
           const SizedBox(height: 5),
@@ -796,7 +799,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mood Tracker',
       theme: ThemeData(
-        primarySwatch: Colors.purple,
+        primarySwatch: Colors.indigo, // Closest to AppTheme.primaryColor
+        primaryColor: AppTheme.primaryColor,
       ),
       home: const LoginScreen(),
     );

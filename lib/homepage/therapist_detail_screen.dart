@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class TherapistDetailScreen extends StatelessWidget {
+class TherapistDetailScreen extends StatefulWidget {
   final Map<String, dynamic> therapist;
   final String userId;
 
@@ -11,6 +13,86 @@ class TherapistDetailScreen extends StatelessWidget {
   });
 
   @override
+  _TherapistDetailScreenState createState() => _TherapistDetailScreenState();
+}
+
+class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
+  bool isStartingVisit = false;
+
+  Future<void> _startInstantVisit() async {
+    setState(() {
+      isStartingVisit = true;
+    });
+
+    try {
+      // Create instant meeting
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/api/appointments/instant-visit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': widget.userId,
+          'therapistId': widget.therapist['_id'],
+          'therapistName': widget.therapist['name'],
+          'therapistEmail': widget.therapist['email'],
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final meetingLink = data['meetingLink'];
+
+        if (mounted) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Meeting link sent to both you and ${widget.therapist['name']}!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to video call screen
+          Navigator.pushNamed(
+            context,
+            '/video_call',
+            arguments: {
+              'meetingLink': meetingLink,
+              'therapistName': widget.therapist['name'],
+              'userId': widget.userId,
+            },
+          );
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorData['message'] ?? 'Failed to start visit'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting visit: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isStartingVisit = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
@@ -19,7 +101,7 @@ class TherapistDetailScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.purple,
         title: Text(
-          therapist['name'] ?? 'Therapist',
+          widget.therapist['name'] ?? 'Therapist',
           style: TextStyle(
             color: Colors.white,
             fontSize: isSmallScreen ? 18 : 22,
@@ -56,7 +138,7 @@ class TherapistDetailScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            therapist['name'] ?? 'Unknown',
+                            widget.therapist['name'] ?? 'Unknown',
                             style: TextStyle(
                               fontSize: isSmallScreen ? 16 : 18,
                               fontWeight: FontWeight.bold,
@@ -64,7 +146,7 @@ class TherapistDetailScreen extends StatelessWidget {
                           ),
                           SizedBox(height: isSmallScreen ? 4 : 8),
                           Text(
-                            therapist['specialty'] ?? 'Therapist',
+                            widget.therapist['specialty'] ?? 'Therapist',
                             style: TextStyle(
                               fontSize: isSmallScreen ? 12 : 14,
                               color: Colors.grey[600],
@@ -72,7 +154,7 @@ class TherapistDetailScreen extends StatelessWidget {
                           ),
                           SizedBox(height: isSmallScreen ? 2 : 4),
                           Text(
-                            therapist['location'] ?? 'Unknown Location',
+                            widget.therapist['location'] ?? 'Unknown Location',
                             style: TextStyle(
                               fontSize: isSmallScreen ? 12 : 14,
                               color: Colors.grey[600],
@@ -80,7 +162,7 @@ class TherapistDetailScreen extends StatelessWidget {
                           ),
                           SizedBox(height: isSmallScreen ? 2 : 4),
                           Text(
-                            therapist['email'] ?? 'No email provided',
+                            widget.therapist['email'] ?? 'No email provided',
                             style: TextStyle(
                               fontSize: isSmallScreen ? 12 : 14,
                               color: Colors.grey[600],
@@ -94,8 +176,46 @@ class TherapistDetailScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: isSmallScreen ? 10 : 20),
+
+            // Start a Visit Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    vertical: isSmallScreen ? 16 : 20,
+                  ),
+                ),
+                onPressed: isStartingVisit ? null : _startInstantVisit,
+                icon: isStartingVisit
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Icon(Icons.video_call, color: Colors.white),
+                label: Text(
+                  isStartingVisit ? "Starting Visit..." : "Start a Visit",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 14 : 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: isSmallScreen ? 15 : 25),
             Text(
-              "Book an Appointment",
+              "Or Book an Appointment",
               style: TextStyle(
                 fontSize: isSmallScreen ? 14 : 16,
                 fontWeight: FontWeight.bold,
@@ -120,8 +240,8 @@ class TherapistDetailScreen extends StatelessWidget {
                         context,
                         '/physical_appointment',
                         arguments: {
-                          'therapist': therapist,
-                          'userId': userId,
+                          'therapist': widget.therapist,
+                          'userId': widget.userId,
                         },
                       );
                     },
@@ -151,8 +271,8 @@ class TherapistDetailScreen extends StatelessWidget {
                         context,
                         '/online_appointment',
                         arguments: {
-                          'therapist': therapist,
-                          'userId': userId,
+                          'therapist': widget.therapist,
+                          'userId': widget.userId,
                         },
                       );
                     },

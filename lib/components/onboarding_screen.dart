@@ -1,142 +1,6 @@
-// import 'package:flutter/material.dart';
-// import 'package:myapp/login_page.dart';
-
-// class OnboardingScreen extends StatefulWidget {
-//   const OnboardingScreen({super.key});
-
-//   @override
-//   _OnboardingScreenState createState() => _OnboardingScreenState();
-// }
-
-// class _OnboardingScreenState extends State<OnboardingScreen> {
-//   final List<String> titles = [
-//     'Welcome to MindEase',
-//     'Track Your Mental Health',
-//     'Achieve Peace of Mind'
-//   ];
-//   final List<String> descriptions = [
-//     'MindEase helps you stay mindful and improve mental clarity.',
-//     'Get personalized insights and improve your well-being.',
-//     'Start your journey towards peace and happiness with us.'
-//   ];
-
-//   int currentIndex = 0;
-
-//   void nextPage() {
-//     setState(() {
-//       if (currentIndex < titles.length - 1) {
-//         currentIndex++;
-//       }
-//     });
-//   }
-
-//   void navigateToLogin() {
-//     Navigator.push(
-//       context,
-//       MaterialPageRoute(builder: (context) => LoginPage()),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: Container(
-//         decoration: const BoxDecoration(
-//           gradient: LinearGradient(
-//             begin: Alignment.topLeft,
-//             end: Alignment.bottomRight,
-//             colors: [
-//               Color(0xFFFFE29F), // Light yellow
-//               Color(0xFFFFC0CB), // Light pink
-//             ],
-//           ),
-//         ),
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               Expanded(
-//                 child: PageView.builder(
-//                   itemCount: titles.length,
-//                   onPageChanged: (index) {
-//                     setState(() {
-//                       currentIndex = index;
-//                     });
-//                   },
-//                   itemBuilder: (context, index) => Column(
-//                     mainAxisAlignment: MainAxisAlignment.center,
-//                     children: [
-//                       Text(
-//                         titles[index],
-//                         style: const TextStyle(
-//                           fontSize: 28,
-//                           fontWeight: FontWeight.bold,
-//                           color: Colors.black, // Title in black
-//                         ),
-//                         textAlign: TextAlign.center,
-//                       ),
-//                       const SizedBox(height: 16),
-//                       Text(
-//                         descriptions[index],
-//                         style: const TextStyle(
-//                           fontSize: 16,
-//                           color: Colors.black54, // Description in dark gray
-//                         ),
-//                         textAlign: TextAlign.center,
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: List.generate(
-//                   titles.length,
-//                   (index) => AnimatedContainer(
-//                     duration: const Duration(milliseconds: 300),
-//                     margin: const EdgeInsets.symmetric(horizontal: 4.0),
-//                     width: currentIndex == index ? 12.0 : 8.0,
-//                     height: currentIndex == index ? 12.0 : 8.0,
-//                     decoration: BoxDecoration(
-//                       shape: BoxShape.circle,
-//                       color:
-//                           currentIndex == index ? Colors.black : Colors.black38,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//               const SizedBox(height: 20),
-//               ElevatedButton(
-//                 onPressed: currentIndex == titles.length - 1
-//                     ? navigateToLogin
-//                     : nextPage,
-//                 style: ElevatedButton.styleFrom(
-//                   backgroundColor: Colors.deepPurple, // Button color
-//                   minimumSize: const Size(120, 40), // Adjust button size
-//                   shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                 ),
-//                 child: Text(
-//                   currentIndex == titles.length - 1 ? 'Get Started' : 'Next',
-//                   style: const TextStyle(
-//                     color: Colors.black, // Button text in black
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                 ),
-//               ),
-//               const SizedBox(height: 20),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:myapp/login_page.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -145,42 +9,45 @@ class OnboardingScreen extends StatefulWidget {
   _OnboardingScreenState createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
-    with SingleTickerProviderStateMixin {
-  final List<String> titles = [
-    'Welcome to MindEase',
-    'Track Your Mental Health',
-    'Achieve Peace of Mind'
-  ];
-  final List<String> descriptions = [
-    'MindEase helps you stay mindful and improve mental clarity.',
-    'Get personalized insights and improve your well-being.',
-    'Start your journey towards peace and happiness with us.'
-  ];
-
+class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int currentIndex = 0;
-  late AnimationController _animationController;
-  late Animation<double> _fadeInAnimation;
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _fadeInAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-    _animationController.forward();
-  }
+  final List<OnboardingData> onboardingData = [
+    OnboardingData(
+      title: 'Welcome to MindEase',
+      description:
+          'Your journey to mental wellness starts here. Find peace, balance, and clarity in your daily life.',
+      icon: Icons.psychology,
+      gradient: AppTheme.healingGradient,
+    ),
+    OnboardingData(
+      title: 'Connect with Therapists',
+      description:
+          'Book sessions with certified mental health professionals. Online or in-person appointments available.',
+      icon: Icons.people_alt,
+      gradient: AppTheme.primaryGradient,
+    ),
+    OnboardingData(
+      title: 'Track Your Progress',
+      description:
+          'Monitor your mood, journal your thoughts, and see your mental health journey unfold.',
+      icon: Icons.trending_up,
+      gradient: AppTheme.calmGradient,
+    ),
+    OnboardingData(
+      title: 'Find Your Peace',
+      description:
+          'Start your wellness journey today. Every step forward is a step towards a healthier mind.',
+      icon: Icons.spa,
+      gradient: AppTheme.backgroundGradient,
+    ),
+  ];
 
   void nextPage() {
-    if (currentIndex < titles.length - 1) {
+    if (currentIndex < onboardingData.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
@@ -189,125 +56,131 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void navigateToLogin() {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (context) => LoginPage()),
     );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _animationController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1), // Light yellow
-              Color(0xFFFFC0CB), // Light pink
-            ],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/logo1.png',
-                  height: 400, width: 400, fit: BoxFit.contain),
+              // Admin Portal Access Button
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/admin');
+                    },
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'Admin Portal',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  itemCount: titles.length,
                   onPageChanged: (index) {
                     setState(() {
                       currentIndex = index;
                     });
-                    _animationController.reset();
-                    _animationController.forward();
                   },
-                  itemBuilder: (context, index) => FadeTransition(
-                    opacity: _fadeInAnimation,
-                    child: Column(
+                  itemCount: onboardingData.length,
+                  itemBuilder: (context, index) {
+                    return OnboardingPage(data: onboardingData[index]);
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingL),
+                child: Column(
+                  children: [
+                    // Page indicators
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          titles[index],
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black, // Title in black
+                      children: List.generate(
+                        onboardingData.length,
+                        (index) => Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: currentIndex == index ? 24 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: currentIndex == index
+                                ? AppTheme.primaryColor
+                                : AppTheme.primaryColor.withOpacity(0.3),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          descriptions[index],
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingL),
+                    // Next/Get Started button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: nextPage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppTheme.spacingM),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusM),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          currentIndex == onboardingData.length - 1
+                              ? 'Begin Your Journey'
+                              : 'Continue',
                           style: const TextStyle(
                             fontSize: 16,
-                            color: Colors.black54, // Description in dark gray
+                            fontWeight: FontWeight.w600,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  titles.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                    width: currentIndex == index ? 16.0 : 8.0,
-                    height: 8.0,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4.0),
-                      color: currentIndex == index
-                          ? Colors.deepPurple
-                          : Colors.black38,
-                      boxShadow: currentIndex == index
-                          ? [
-                              BoxShadow(
-                                color: Colors.deepPurple.withOpacity(0.5),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                            ]
-                          : [],
+                    const SizedBox(height: AppTheme.spacingS),
+                    // Skip button
+                    TextButton(
+                      onPressed: navigateToLogin,
+                      child: Text(
+                        'Skip',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: nextPage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple, // Button color
-                  minimumSize: const Size(120, 40), // Adjust button size
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  currentIndex == titles.length - 1 ? 'Get Started' : 'Next',
-                  style: const TextStyle(
-                    color: Colors.black, // Button text in black
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -316,3 +189,65 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
+class OnboardingPage extends StatelessWidget {
+  final OnboardingData data;
+
+  const OnboardingPage({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              gradient: data.gradient,
+              shape: BoxShape.circle,
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: Icon(
+              data.icon,
+              size: 80,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingXL),
+          Text(
+            data.title,
+            style: AppTheme.headingLarge.copyWith(
+              color: AppTheme.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          Text(
+            data.description,
+            style: AppTheme.bodyLarge.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OnboardingData {
+  final String title;
+  final String description;
+  final IconData icon;
+  final LinearGradient gradient;
+
+  OnboardingData({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.gradient,
+  });
+}

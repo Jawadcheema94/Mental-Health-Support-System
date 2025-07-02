@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math';
 import 'package:intl/intl.dart';
 import 'package:myapp/login_page.dart';
 import 'package:myapp/therapist_screen.dart';
+import 'package:myapp/homepage/All_therapist_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/components/modern_card.dart';
+import 'package:myapp/components/modern_button.dart';
+import 'package:myapp/user_appointments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -15,7 +21,6 @@ class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
-
 
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? userDetails;
@@ -40,7 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json"}, // Add content type header
+        headers: {
+          "Content-Type": "application/json"
+        }, // Add content type header
       );
       print('Response status: ${response.statusCode}'); // Debug log
       print('Response body: ${response.body}'); // Debug log
@@ -48,8 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         // Handle both direct user object and nested user object
-        final userData = responseData is Map ? 
-          (responseData['user'] ?? responseData) : responseData;
+        final userData = responseData is Map
+            ? (responseData['user'] ?? responseData)
+            : responseData;
 
         setState(() {
           userDetails = userData;
@@ -58,7 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       } else {
         final errorMsg = response.body.isNotEmpty
-            ? jsonDecode(response.body)['message'] ?? 'Failed to load user details'
+            ? jsonDecode(response.body)['message'] ??
+                'Failed to load user details'
             : 'Failed to load user details';
         setState(() {
           errorMessage = errorMsg;
@@ -95,85 +104,282 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _searchByLocationName(String placeName) async {
-  final query = Uri.encodeComponent(placeName);
-  final url = 'https://nominatim.openstreetmap.org/search?q=$query&format=json';
+    final query = Uri.encodeComponent(placeName);
+    final url =
+        'https://nominatim.openstreetmap.org/search?q=$query&format=json';
 
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data.isNotEmpty) {
-        final lat = double.parse(data[0]['lat']);
-        final lon = double.parse(data[0]['lon']);
-        print('Coordinates: $lat, $lon');
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          final lat = double.parse(data[0]['lat']);
+          final lon = double.parse(data[0]['lon']);
+          print('Coordinates: $lat, $lon');
 
-        await _fetchNearbyTherapistsWithCoordinates(lat, lon);
+          await _fetchNearbyTherapistsWithCoordinates(lat, lon);
+        } else {
+          setState(() {
+            errorMessage = 'No results found for "$placeName"';
+          });
+        }
       } else {
         setState(() {
-          errorMessage = 'No results found for "$placeName"';
+          errorMessage = 'Failed to geocode location';
         });
       }
-    } else {
+    } catch (e) {
       setState(() {
-        errorMessage = 'Failed to geocode location';
+        errorMessage = 'Geocoding error: $e';
       });
     }
-  } catch (e) {
-    setState(() {
-      errorMessage = 'Geocoding error: $e';
-    });
   }
-}
 
-Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async {
-  final url = 'http://localhost:3000/api/therapists/nearby?lat=$lat&lng=$lng&radius=10';
+  Future<void> _fetchNearbyTherapistsWithCoordinates(
+      double lat, double lng) async {
+    final url =
+        'http://localhost:3000/api/therapists/nearby?lat=$lat&lng=$lng&radius=10';
 
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          therapists = data['therapists'];
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load nearby therapists';
+        });
+      }
+    } catch (e) {
       setState(() {
-        therapists = data['therapists'];
-      });
-    } else {
-      setState(() {
-        errorMessage = 'Failed to load nearby therapists';
+        errorMessage = 'Error fetching therapists: $e';
       });
     }
-  } catch (e) {
-    setState(() {
-      errorMessage = 'Error fetching therapists: $e';
-    });
   }
-}
 
   Future<void> _fetchUserLocation() async {
     try {
       print('Fetching user location...');
-      final response = await http.get(
-        Uri.parse('http://localhost:3000/api/location/ip-geo'),
-      );
 
-      print('Location API response status: ${response.statusCode}');
-      print('Location API response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final locationData = jsonDecode(response.body);
-        setState(() {
-          userLocation = locationData;
-        });
-        print('Location data set: $locationData');
-      } else {
-        print('Failed to fetch location: ${response.statusCode} - ${response.body}');
-        setState(() {
-          userLocation = null;
-        });
-      }
+      // Use IP-based location
+      await _getIPBasedLocation();
     } catch (e) {
       print('Error fetching location: $e');
       setState(() {
         userLocation = null;
       });
+    }
+  }
+
+  Future<void> _getIPBasedLocation() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/location/ip-geo'),
+      );
+
+      print('IP Location API response status: ${response.statusCode}');
+      print('IP Location API response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final locationData = jsonDecode(response.body);
+        locationData['source'] = 'IP';
+        setState(() {
+          userLocation = locationData;
+        });
+        print('IP Location data set: $locationData');
+      } else {
+        print(
+            'Failed to fetch IP location: ${response.statusCode} - ${response.body}');
+        setState(() {
+          userLocation = null;
+        });
+      }
+    } catch (e) {
+      print('Error fetching IP location: $e');
+      setState(() {
+        userLocation = null;
+      });
+    }
+  }
+
+  void _findNearbyTherapists() async {
+    if (userLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Location not available. Please enable location services.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Finding nearby therapists...')),
+      );
+
+      // Fetch therapists from API
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/therapists'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> allTherapists = jsonDecode(response.body);
+
+        // Filter therapists by location based on city/region
+        List<dynamic> nearbyTherapists = allTherapists.where((therapist) {
+          final therapistLocation =
+              therapist['location']?.toString().toLowerCase() ?? '';
+          final userCity =
+              userLocation!['city']?.toString().toLowerCase() ?? '';
+          final userRegion =
+              userLocation!['region']?.toString().toLowerCase() ?? '';
+
+          return therapistLocation.contains(userCity) ||
+              therapistLocation.contains(userRegion) ||
+              userCity.contains(therapistLocation) ||
+              userRegion.contains(therapistLocation);
+        }).toList();
+
+        // If no nearby therapists found, show all therapists
+        if (nearbyTherapists.isEmpty) {
+          nearbyTherapists = allTherapists;
+        }
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AllTherapistsScreen(
+                therapists: nearbyTherapists,
+                userId: widget.userId,
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load therapists. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  List<dynamic> _filterTherapistsByDistance(
+      List<dynamic> therapists, double userLat, double userLon) {
+    const double maxDistanceKm = 50.0; // 50km radius
+
+    List<Map<String, dynamic>> therapistsWithDistance = [];
+
+    for (var therapist in therapists) {
+      // For demo purposes, assign random coordinates near user location
+      // In a real app, therapists would have actual coordinates in the database
+      double therapistLat =
+          userLat + (Random().nextDouble() - 0.5) * 0.5; // ±0.25 degrees
+      double therapistLon = userLon + (Random().nextDouble() - 0.5) * 0.5;
+
+      double distance =
+          _calculateDistance(userLat, userLon, therapistLat, therapistLon);
+
+      if (distance <= maxDistanceKm) {
+        Map<String, dynamic> therapistWithDistance =
+            Map<String, dynamic>.from(therapist);
+        therapistWithDistance['distance'] = distance;
+        therapistWithDistance['latitude'] = therapistLat;
+        therapistWithDistance['longitude'] = therapistLon;
+        therapistsWithDistance.add(therapistWithDistance);
+      }
+    }
+
+    // Sort by distance
+    therapistsWithDistance
+        .sort((a, b) => a['distance'].compareTo(b['distance']));
+
+    return therapistsWithDistance;
+  }
+
+  // Simple distance calculation using Haversine formula
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371; // Earth's radius in kilometers
+
+    double dLat = _degreesToRadians(lat2 - lat1);
+    double dLon = _degreesToRadians(lon2 - lon1);
+
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return earthRadius * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  void _navigateToTherapistList() async {
+    try {
+      // Fetch therapists from API
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/therapists'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> therapists = jsonDecode(response.body);
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AllTherapistsScreen(
+                therapists: therapists,
+                userId: widget.userId,
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load therapists. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -186,10 +392,11 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
       final requestBody = jsonEncode({
         'userId': widget.userId,
       });
-      
-      print('Making API call to: http://localhost:3000/api/google-meet/create-meet');
+
+      print(
+          'Making API call to: http://localhost:3000/api/google-meet/create-meet');
       print('Request body: $requestBody');
-      
+
       final response = await http.post(
         Uri.parse('http://localhost:3000/api/google-meet/create-meet'),
         headers: {'Content-Type': 'application/json'},
@@ -202,19 +409,24 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('Backend response: $data'); // Debug: see what backend returns
-        final meetLink = data['meetLink'] ?? data['link'] ?? data['meetingLink'] ?? '';
+        final meetLink =
+            data['meetLink'] ?? data['link'] ?? data['meetingLink'] ?? '';
         print('Extracted meet link: $meetLink'); // Debug: see extracted link
-        
+
         if (meetLink.isNotEmpty) {
           _showMeetLinkDialog(meetLink);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to generate meeting link. Response: ${response.body}')),
+            SnackBar(
+                content: Text(
+                    'Failed to generate meeting link. Response: ${response.body}')),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.statusCode} - ${response.body}')),
+          SnackBar(
+              content:
+                  Text('Error: ${response.statusCode} - ${response.body}')),
         );
       }
     } catch (e) {
@@ -299,6 +511,23 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
               Text('City: ${userLocation!['city'] ?? 'Unknown'}'),
               Text('Region: ${userLocation!['region'] ?? 'Unknown'}'),
               Text('Country: ${userLocation!['country'] ?? 'Unknown'}'),
+              const SizedBox(height: 8),
+              Text(
+                'Source: ${userLocation!['source'] == 'GPS' ? 'GPS Location' : 'IP Location'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: userLocation!['source'] == 'GPS'
+                      ? Colors.green
+                      : Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (userLocation!['latitude'] != null &&
+                  userLocation!['longitude'] != null)
+                Text(
+                  'Coordinates: ${userLocation!['latitude']?.toStringAsFixed(4)}, ${userLocation!['longitude']?.toStringAsFixed(4)}',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
               const SizedBox(height: 16),
               const Text(
                 'We use this to find therapists near you.',
@@ -314,10 +543,7 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // You can add logic here to filter therapists by location
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Finding nearby therapists...')),
-                );
+                _findNearbyTherapists();
               },
               child: const Text('Find Nearby'),
             ),
@@ -376,19 +602,57 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
     final isSmallScreen = screenWidth < 600;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text(
-          "MindEase",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isSmallScreen ? 18 : 22,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.heroGradient,
           ),
         ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: const Icon(
+                Icons.psychology_outlined,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+            const Text(
+              "MindEase",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      UserAppointmentsScreen(userId: widget.userId),
+                ),
+              );
+            },
+            tooltip: 'My Appointments',
+          ),
           IconButton(
             icon: const Icon(Icons.location_on, color: Colors.white),
             onPressed: _showLocationInfo,
@@ -407,13 +671,14 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Colors.purple),
+              child: CircularProgressIndicator(color: AppTheme.primaryColor),
             )
           : errorMessage != null
               ? Center(
                   child: Text(
                     errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                    style:
+                        AppTheme.bodyLarge.copyWith(color: AppTheme.errorColor),
                   ),
                 )
               : _buildHomeContent(context, screenWidth, isSmallScreen),
@@ -427,43 +692,54 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
     final cardWidth = isSmallScreen ? screenWidth * 0.35 : 140.0;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(padding),
+      padding: const EdgeInsets.all(AppTheme.spacingL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(padding),
+            padding: const EdgeInsets.all(AppTheme.spacingL),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.purple, Colors.deepPurpleAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(AppTheme.radiusL),
+              boxShadow: AppTheme.softShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Hello, ${userDetails?['username'] ?? 'User'}!",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isSmallScreen ? 18 : 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      ),
+                      child: const Icon(
+                        Icons.waving_hand,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingM),
+                    Expanded(
+                      child: Text(
+                        "Hello, ${userDetails?['username'] ?? 'User'}!",
+                        style: AppTheme.headingMedium
+                            .copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: padding / 2),
+                const SizedBox(height: AppTheme.spacingM),
                 Text(
-                  "Welcome to MindEase! Start tracking your mental health today.",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: isSmallScreen ? 12 : 14,
-                  ),
+                  "Welcome to MindEase! Start your wellness journey today.",
+                  style: AppTheme.bodyLarge
+                      .copyWith(color: Colors.white.withOpacity(0.9)),
                 ),
               ],
             ),
           ),
-          SizedBox(height: padding),
+          const SizedBox(height: AppTheme.spacingL),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -522,7 +798,8 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
                       size: 32,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -556,11 +833,12 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: isCreatingMeet ? null : _createGoogleMeet,
+                  onPressed: _navigateToTherapistList,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -568,25 +846,16 @@ Future<void> _fetchNearbyTherapistsWithCoordinates(double lat, double lng) async
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      isCreatingMeet
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                              ),
-                            )
-                          : const Icon(Icons.video_call),
+                      const Icon(Icons.search),
                       const SizedBox(width: 8),
-                      Text(
-                        isCreatingMeet ? 'Creating...' : 'Start E-Visit',
-                        style: const TextStyle(fontSize: 16),
+                      const Text(
+                        'Find Therapist',
+                        style: TextStyle(fontSize: 16),
                       ),
                     ],
                   ),
                 ),
-                if (meetLink != null) ...[                  
+                if (meetLink != null) ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -1006,7 +1275,12 @@ class AllTherapistsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.heroGradient,
+          ),
+        ),
         title: Text(
           "All Therapists",
           style: TextStyle(
@@ -1625,23 +1899,8 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
       if (response.statusCode == 201) {
         final appointment = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Online appointment booked with ${widget.therapist['name']}',
-              ),
-            ),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CreateTherapistPage(
-                // title: 'Video Call with ${widget.therapist['name']}',
-                // channelName: appointment['channelName'] ?? 'default_channel',
-                // token: appointment['token'] ?? 'default_token',
-              ),
-            ),
-          );
+          // Show appointment confirmation with Google Meet link
+          _showOnlineAppointmentConfirmation(appointment);
         }
       } else {
         final errorData = jsonDecode(response.body);
@@ -1658,6 +1917,85 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
         isLoading = false;
       });
     }
+  }
+
+  void _showOnlineAppointmentConfirmation(Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 12),
+              Text('Appointment Confirmed!'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Your online appointment with ${widget.therapist['name']} has been successfully booked.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Meeting Details:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      SizedBox(height: 8),
+                      if (appointment['meetingLink'] != null) ...[
+                        Text('Google Meet Link:',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                        SizedBox(height: 4),
+                        SelectableText(
+                          appointment['meetingLink'],
+                          style: TextStyle(color: Colors.blue, fontSize: 12),
+                        ),
+                        SizedBox(height: 8),
+                      ],
+                      Text(
+                          'Date: ${DateFormat('MMMM d, yyyy').format(DateTime.parse(appointment['appointmentDate']))}'),
+                      Text(
+                          'Time: ${DateFormat('h:mm a').format(DateTime.parse(appointment['appointmentDate']))}'),
+                      Text('Duration: ${appointment['duration']} minutes'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'The meeting link has been sent to your email. You can also find it in your appointments.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back to previous screen
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -2367,7 +2705,7 @@ class _BottomNavBarState extends State<_BottomNavBar> {
             icon: Icon(Icons.track_changes), label: 'Analysis'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
-      selectedItemColor: Colors.purple,
+      selectedItemColor: AppTheme.primaryColor,
       unselectedItemColor: Colors.grey,
       showSelectedLabels: false,
       showUnselectedLabels: false,
@@ -2375,8 +2713,6 @@ class _BottomNavBarState extends State<_BottomNavBar> {
     );
   }
 }
-
-
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});

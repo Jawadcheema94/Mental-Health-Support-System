@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/home_page.dart';
 import 'package:myapp/therapist_dashboard.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   final String userId;
@@ -220,7 +221,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppTheme.primaryColor,
       ),
       child: const Text(
         "Change Password",

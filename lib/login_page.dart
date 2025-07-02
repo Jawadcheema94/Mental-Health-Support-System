@@ -7,6 +7,9 @@ import 'package:myapp/home_page.dart';
 import 'package:myapp/signup_page.dart';
 import 'package:myapp/therapist_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/components/modern_input.dart';
+import 'package:myapp/components/modern_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -54,12 +57,13 @@ class _LoginPageState extends State<LoginPage> {
       final userType = selectedRole == "user" ? "users" : "therapists";
 
       // Add debug print to see what's being sent
-      print("Sending login request to: http://localhost:3000/api/${userType}/login");
+      print(
+          "Sending login request to: http://localhost:3000/api/${userType}/login");
       print("Request body: ${jsonEncode({
-        "email": email,
-        "password": password,
-        "role": selectedRole,
-      })}");
+            "email": email,
+            "password": password,
+            "role": selectedRole,
+          })}");
 
       final response = await http.post(
         Uri.parse("http://localhost:3000/api/${userType}/login"),
@@ -70,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
           "role": selectedRole,
         }),
       );
-      
+
       // Close the loading dialog
       Navigator.pop(context);
 
@@ -81,10 +85,10 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         print("Decoded response data: $responseData");
-        
+
         // Extract userId with null safety
         String? userId;
-        
+
         // Try different possible response formats
         if (responseData is Map) {
           if (responseData.containsKey('user') && responseData['user'] is Map) {
@@ -97,13 +101,13 @@ class _LoginPageState extends State<LoginPage> {
             userId = responseData['_id']?.toString();
           }
         }
-        
+
         if (userId == null) {
           throw Exception("User ID not found in response: $responseData");
         }
-        
+
         print("Extracted userId: $userId");
-        
+
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', userId);
 
@@ -119,10 +123,10 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        final errorMsg = response.body.isNotEmpty 
-            ? jsonDecode(response.body)['message'] ?? "Unknown error" 
+        final errorMsg = response.body.isNotEmpty
+            ? jsonDecode(response.body)['message'] ?? "Unknown error"
             : "Server returned ${response.statusCode}";
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Login failed: $errorMsg")),
         );
@@ -137,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
-  
+
   String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return "Email is required";
@@ -164,32 +168,57 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFE29F), Color(0xFFFFC0CB)],
-          ),
+          gradient: AppTheme.backgroundGradient,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _header(),
-                const SizedBox(height: 30),
-                _inputField(),
-                const SizedBox(height: 20),
-                _roleSelector(),
-                const SizedBox(height: 20),
-                _forgotPasswordButton(),
-                const SizedBox(height: 10),
-                _loginButton(context),
-                const SizedBox(height: 20),
-                _signup(),
-              ],
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppTheme.spacingL),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Admin Portal Access Button
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/admin');
+                      },
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border:
+                              Border.all(color: Colors.white.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          'Admin Portal',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingXL),
+                  _header(),
+                  const SizedBox(height: AppTheme.spacingXXL),
+                  _inputField(),
+                  const SizedBox(height: AppTheme.spacingL),
+                  _roleSelector(),
+                  const SizedBox(height: AppTheme.spacingL),
+                  _forgotPasswordButton(),
+                  const SizedBox(height: AppTheme.spacingM),
+                  _loginButton(context),
+                  const SizedBox(height: AppTheme.spacingXL),
+                  _signup(),
+                ],
+              ),
             ),
           ),
         ),
@@ -199,17 +228,52 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _header() {
     return Column(
-      children: const [
-        Text(
-          "Welcome Back!",
-          style: TextStyle(
-              fontSize: 36, fontWeight: FontWeight.bold, color: Colors.black),
-          textAlign: TextAlign.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppTheme.spacingXL),
+          decoration: BoxDecoration(
+            gradient: AppTheme.heroGradient,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withOpacity(0.4),
+                blurRadius: 25,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: AppTheme.secondaryColor.withOpacity(0.2),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.spa_outlined,
+            size: 64,
+            color: Colors.white,
+          ),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: AppTheme.spacingXL),
+        ShaderMask(
+          shaderCallback: (bounds) =>
+              AppTheme.primaryGradient.createShader(bounds),
+          child: const Text(
+            "Welcome Back!",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
         Text(
-          "Login to continue",
-          style: TextStyle(fontSize: 16, color: Colors.black54),
+          "Continue your mental wellness journey",
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -220,33 +284,28 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
+        ModernInput(
+          label: "Email Address",
+          hint: "Enter your email",
           controller: emailController,
-          decoration: const InputDecoration(
-            hintText: "Email",
-            prefixIcon: Icon(Icons.email, color: Colors.purple),
-          ),
+          prefixIcon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
           validator: validateEmail,
         ),
-        const SizedBox(height: 10),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Password",
+          hint: "Enter your password",
           controller: passwordController,
+          prefixIcon: Icons.lock_outline,
+          suffixIcon:
+              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          onSuffixIconPressed: () {
+            setState(() {
+              isPasswordVisible = !isPasswordVisible;
+            });
+          },
           obscureText: !isPasswordVisible,
-          decoration: InputDecoration(
-            hintText: "Password",
-            prefixIcon: const Icon(Icons.lock, color: Colors.purple),
-            suffixIcon: IconButton(
-              icon: Icon(
-                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: Colors.purple,
-              ),
-              onPressed: () {
-                setState(() {
-                  isPasswordVisible = !isPasswordVisible;
-                });
-              },
-            ),
-          ),
           validator: validatePassword,
         ),
       ],
@@ -254,35 +313,33 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _forgotPasswordButton() {
-    return TextButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
-        );
-      },
-      child: const Text(
-        "Forgot Password?",
-        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+          );
+        },
+        child: const Text(
+          "Forgot Password?",
+          style: TextStyle(
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
 
   Widget _loginButton(BuildContext context) {
-    return ElevatedButton(
+    return PrimaryButton(
+      text: "Sign In",
       onPressed: () async {
         await login(context);
       },
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.deepPurple,
-      ),
-      child: const Text(
-        "Login",
-        style: TextStyle(
-            fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-      ),
+      icon: Icons.login,
     );
   }
 
@@ -290,16 +347,24 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Don't have an account? ",
-            style: TextStyle(color: Colors.black54)),
+        const Text(
+          "Don't have an account? ",
+          style: AppTheme.bodyMedium,
+        ),
         TextButton(
           onPressed: () {
             Navigator.push(
-                context, MaterialPageRoute(builder: (context) => SignupPage()));
+              context,
+              MaterialPageRoute(builder: (context) => SignupPage()),
+            );
           },
-          child: const Text("Sign Up",
-              style:
-                  TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)),
+          child: const Text(
+            "Sign Up",
+            style: TextStyle(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
     );
@@ -309,43 +374,91 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Select Role",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          "I am a...",
+          style: AppTheme.headingSmall,
+        ),
+        const SizedBox(height: AppTheme.spacingM),
         Row(
           children: [
             Expanded(
-              child: RadioListTile<String>(
-                title: const Text("User"),
-                value: "user",
-                groupValue: selectedRole,
-                onChanged: (value) {
-                  setState(() {
-                    selectedRole = value;
-                  });
-                },
+              child: _buildRoleCard(
+                "Patient",
+                "user",
+                Icons.person_outline,
+                "Seeking mental health support",
               ),
             ),
+            const SizedBox(width: AppTheme.spacingM),
             Expanded(
-              child: RadioListTile<String>(
-                title: const Text("Therapist"),
-                value: "therapist",
-                groupValue: selectedRole,
-                onChanged: (value) {
-                  setState(() {
-                    selectedRole = value;
-                  });
-                },
+              child: _buildRoleCard(
+                "Therapist",
+                "therapist",
+                Icons.psychology_outlined,
+                "Providing mental health services",
               ),
             ),
           ],
         ),
         if (selectedRole == null)
           const Padding(
-            padding: EdgeInsets.only(left: 12.0),
-            child: Text("Please select a role",
-                style: TextStyle(color: Colors.red)),
+            padding: EdgeInsets.only(top: AppTheme.spacingS),
+            child: Text(
+              "Please select a role",
+              style: TextStyle(color: AppTheme.errorColor, fontSize: 12),
+            ),
           ),
       ],
+    );
+  }
+
+  Widget _buildRoleCard(
+      String title, String value, IconData icon, String description) {
+    final isSelected = selectedRole == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedRole = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withOpacity(0.1)
+              : AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected ? AppTheme.softShadow : null,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: isSelected ? AppTheme.primaryColor : AppTheme.textLight,
+            ),
+            const SizedBox(height: AppTheme.spacingS),
+            Text(
+              title,
+              style: AppTheme.bodyLarge.copyWith(
+                fontWeight: FontWeight.w600,
+                color:
+                    isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingXS),
+            Text(
+              description,
+              style: AppTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

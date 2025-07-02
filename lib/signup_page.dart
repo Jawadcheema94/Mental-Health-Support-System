@@ -341,7 +341,7 @@
 //       child: const Text(
 //         "Sign Up",
 //         style: TextStyle(fontSize: 20,color: Colors.black, fontWeight: FontWeight.bold),
-        
+
 //       ),
 //     );
 //   }
@@ -371,11 +371,13 @@
 //   }
 // }
 
-
 import 'package:flutter/material.dart';
 import 'package:myapp/login_page.dart';
 import 'package:myapp/therapist_screen.dart';
 import 'services/api_service.dart';
+import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/components/modern_input.dart';
+import 'package:myapp/components/modern_button.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -416,10 +418,12 @@ class _SignupPageState extends State<SignupPage> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    print("Attempting to sign up with: username=$username, email=$email, password=$password");
+    print(
+        "Attempting to sign up with: username=$username, email=$email, password=$password");
 
     try {
-      final result = await ApiService.signup(username, email, password, userType);
+      final result =
+          await ApiService.signup(username, email, password, userType);
       print("API Response: $result");
 
       if (result['success']) {
@@ -434,7 +438,8 @@ class _SignupPageState extends State<SignupPage> {
         );
       } else {
         // Display the error message from the API response
-        showAlert("SignUp Successful", result['message'] ?? "Click on the login button");
+        showAlert("SignUp Successful",
+            result['message'] ?? "Click on the login button");
       }
     } catch (e) {
       print("Error during signup: $e");
@@ -463,63 +468,78 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Gradient
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.fromRGBO(255, 226, 159, 1), // Light yellow
-                  Color(0xFFFFC0CB), // Light pink
-                ],
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppTheme.spacingL),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 80), // Space for better alignment
+                  const SizedBox(height: AppTheme.spacingXL),
                   _header(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.spacingXL),
                   _inputFields(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.spacingL),
                   _signupButton(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.spacingXL),
                   _alreadyHaveAccount(),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _header() {
     return Column(
-      children: const [
-        Text(
-          "Create Your Account",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppTheme.spacingXL),
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          textAlign: TextAlign.center,
+          child: const Icon(
+            Icons.spa_outlined,
+            size: 64,
+            color: Colors.white,
+          ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: AppTheme.spacingXL),
+        ShaderMask(
+          shaderCallback: (bounds) =>
+              AppTheme.primaryGradient.createShader(bounds),
+          child: const Text(
+            "Join MindEase",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
         Text(
-          "Sign up to join our community",
-          style: TextStyle(fontSize: 16, color: Colors.black54),
+          "Start your wellness journey today",
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -530,116 +550,120 @@ class _SignupPageState extends State<SignupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<String>(
-          value: userType,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[200],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide.none,
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: DropdownButtonFormField<String>(
+            value: userType,
+            decoration: const InputDecoration(
+              labelText: "Account Type",
+              prefixIcon: Icon(Icons.account_circle_outlined,
+                  color: AppTheme.secondaryColor),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingM,
+                vertical: AppTheme.spacingM,
+              ),
             ),
-          ),
-          items: ["User", "Therapist"]
-              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              userType = value!;
-            });
+            items: ["User", "Therapist"]
+                .map((type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        type == "User" ? "Patient" : "Therapist",
+                        style: AppTheme.bodyLarge,
+                      ),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                userType = value!;
+              });
 
-            // Redirect to a new screen when "Therapist" is selected
-            if (value == "Therapist") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreateTherapistPage()),
-              );
-            }
-          },
+              // Redirect to a new screen when "Therapist" is selected
+              if (value == "Therapist") {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const CreateTherapistPage()),
+                );
+              }
+            },
+          ),
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Username",
+          hint: "Enter your username",
           controller: usernameController,
-          decoration: const InputDecoration(
-            hintText: "Username",
-            prefixIcon: Icon(Icons.person, color: Colors.purple),
-          ),
-          validator: (value) =>
-              value == null || value.length < 3 ? "Username must be at least 3 characters" : null,
+          prefixIcon: Icons.person_outline,
+          validator: (value) => value == null || value.length < 3
+              ? "Username must be at least 3 characters"
+              : null,
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Email Address",
+          hint: "Enter your email",
           controller: emailController,
-          decoration: const InputDecoration(
-            hintText: "Email",
-            prefixIcon: Icon(Icons.email, color: Colors.purple),
-          ),
+          prefixIcon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
           validator: (value) {
             final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-            return value == null || !emailRegex.hasMatch(value) ? "Enter a valid email address" : null;
+            return value == null || !emailRegex.hasMatch(value)
+                ? "Enter a valid email address"
+                : null;
           },
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Password",
+          hint: "Enter your password",
           controller: passwordController,
+          prefixIcon: Icons.lock_outline,
+          suffixIcon:
+              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          onSuffixIconPressed: () {
+            setState(() {
+              isPasswordVisible = !isPasswordVisible;
+            });
+          },
           obscureText: !isPasswordVisible,
-          decoration: InputDecoration(
-            hintText: "Password",
-            prefixIcon: const Icon(Icons.lock, color: Colors.purple),
-            suffixIcon: IconButton(
-              icon: Icon(
-                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: Colors.purple,
-              ),
-              onPressed: () {
-                setState(() {
-                  isPasswordVisible = !isPasswordVisible;
-                });
-              },
-            ),
-          ),
-          validator: (value) =>
-              value == null || value.length < 6 ? "Password must be at least 6 characters long" : null,
+          validator: (value) => value == null || value.length < 6
+              ? "Password must be at least 6 characters long"
+              : null,
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Confirm Password",
+          hint: "Re-enter your password",
           controller: passwordConfirmController,
+          prefixIcon: Icons.lock_outline,
+          suffixIcon: isConfirmPasswordVisible
+              ? Icons.visibility
+              : Icons.visibility_off,
+          onSuffixIconPressed: () {
+            setState(() {
+              isConfirmPasswordVisible = !isConfirmPasswordVisible;
+            });
+          },
           obscureText: !isConfirmPasswordVisible,
-          decoration: InputDecoration(
-            hintText: "Confirm Password",
-            prefixIcon: const Icon(Icons.lock, color: Colors.purple),
-            suffixIcon: IconButton(
-              icon: Icon(
-                isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: Colors.purple,
-              ),
-              onPressed: () {
-                setState(() {
-                  isConfirmPasswordVisible = !isConfirmPasswordVisible;
-                });
-              },
-            ),
-          ),
-          validator: (value) =>
-              value != passwordController.text ? "Passwords do not match" : null,
+          validator: (value) => value != passwordController.text
+              ? "Passwords do not match"
+              : null,
         ),
       ],
     );
   }
 
   Widget _signupButton() {
-    return ElevatedButton(
+    return PrimaryButton(
+      text: "Create Account",
       onPressed: validateAndSignup,
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.deepPurple,
-        elevation: 5,
-      ),
-      child: const Text(
-        "Sign Up",
-        style: TextStyle(fontSize: 20, color: Colors.black, fontWeight: FontWeight.bold),
-      ),
+      icon: Icons.person_add,
     );
   }
 
@@ -649,7 +673,7 @@ class _SignupPageState extends State<SignupPage> {
       children: [
         const Text(
           "Already have an account? ",
-          style: TextStyle(color: Colors.black54),
+          style: AppTheme.bodyMedium,
         ),
         TextButton(
           onPressed: () {
@@ -659,8 +683,11 @@ class _SignupPageState extends State<SignupPage> {
             );
           },
           child: const Text(
-            "Login",
-            style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold),
+            "Sign In",
+            style: TextStyle(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

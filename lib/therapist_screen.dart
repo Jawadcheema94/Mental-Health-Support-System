@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:myapp/login_page.dart'; // Ensure this import is correct
+import 'package:myapp/theme/app_theme.dart';
 
 class CreateTherapistPage extends StatefulWidget {
   const CreateTherapistPage({super.key});
@@ -42,23 +43,35 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://localhost:3000/api/therapists'), // Replace with your actual API endpoint
+            'http://localhost:3000/api/therapists'), // Fixed: http instead of https
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: jsonEncode(<String, String>{
+        body: jsonEncode({
           'name': _nameController.text.trim(),
           'specialty': _specialtyController.text.trim(),
           'location': _locationController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),
+          // Add required fields with default values
+          'phone': '+1-555-0000', // Default phone number
+          'experience': 1, // Default experience
+          'coordinates': {
+            'type': 'Point',
+            'coordinates': [0, 0]
+          }, // Default coordinates in GeoJSON format
+          'hourlyRate': 100, // Default hourly rate
+          'bio':
+              'Professional therapist dedicated to helping clients achieve mental wellness.', // Default bio
         }),
       );
 
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Therapist created successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Therapist created successfully!')),
+          );
+        }
         // Clear the form
         _nameController.clear();
         _specialtyController.clear();
@@ -66,14 +79,18 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
         _emailController.clear();
         _passwordController.clear();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to create therapist.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to create therapist.')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false; // Stop loading
@@ -233,7 +250,7 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppTheme.primaryColor,
         elevation: 5,
       ),
       child: _isLoading
