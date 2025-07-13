@@ -27,6 +27,7 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF374151); // Gray 700
   static const Color textLight = Color(0xFF6B7280); // Gray 500
   static const Color textColor = Color(0xFF111827);
+  static const Color borderColor = Color(0xFFE5E7EB); // Gray 200
 
   // Additional modern colors
   static const Color softPurple = Color(0xFFF5F3FF);
@@ -224,7 +225,7 @@ class AppTheme {
         ),
         hintStyle: const TextStyle(color: textLight),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardColor,
         elevation: 0,
         shadowColor: Colors.transparent,

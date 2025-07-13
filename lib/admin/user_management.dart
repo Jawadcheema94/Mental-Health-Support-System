@@ -29,22 +29,28 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     });
 
     try {
+      print('🔄 Fetching users from API...');
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/users'),
+        Uri.parse('http://192.168.2.105:3000/api/users'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('Users API response status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        print('✅ Users fetched successfully: ${data.length} users');
         setState(() {
           _users = data.cast<Map<String, dynamic>>();
           _filteredUsers = _users;
           _isLoading = false;
         });
       } else {
+        print('❌ Users API error: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to load users');
       }
     } catch (e) {
+      print('❌ Exception in _fetchUsers: $e');
       setState(() {
         _isLoading = false;
       });
@@ -65,24 +71,35 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Future<void> _blockUser(String userId, bool isBlocked) async {
     try {
+      debugPrint('🔧 Blocking user: $userId, current status: $isBlocked');
+
       final response = await http.put(
-        Uri.parse('http://localhost:3000/api/users/$userId/block'),
+        Uri.parse('http://192.168.2.105:3000/api/users/$userId/block'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'isBlocked': !isBlocked}),
       );
 
+      debugPrint('📊 Block response: ${response.statusCode}');
+      debugPrint('📊 Block response body: ${response.body}');
+
       if (response.statusCode == 200) {
         _fetchUsers(); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isBlocked ? 'User unblocked successfully' : 'User blocked successfully'),
-            backgroundColor: isBlocked ? Colors.green : Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isBlocked
+                  ? 'User unblocked successfully'
+                  : 'User blocked successfully'),
+              backgroundColor: isBlocked ? Colors.green : Colors.red,
+            ),
+          );
+        }
+        debugPrint('✅ User block status updated successfully');
       } else {
-        throw Exception('Failed to update user status');
+        throw Exception('Failed to update user status: ${response.statusCode}');
       }
     } catch (e) {
+      debugPrint('❌ Block user error: $e');
       _showErrorDialog('Failed to update user: $e');
     }
   }
@@ -100,10 +117,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               _buildDetailRow('ID', user['_id'] ?? 'N/A'),
               _buildDetailRow('Username', user['username'] ?? 'N/A'),
               _buildDetailRow('Email', user['email'] ?? 'N/A'),
-              _buildDetailRow('Status', user['isBlocked'] == true ? 'Blocked' : 'Active'),
+              _buildDetailRow(
+                  'Status', user['isBlocked'] == true ? 'Blocked' : 'Active'),
               _buildDetailRow('Created', user['createdAt'] ?? 'N/A'),
-              _buildDetailRow('Mood Entries', user['moodEntries']?.length.toString() ?? '0'),
-              _buildDetailRow('Recommendations', user['recommendations']?.length.toString() ?? '0'),
+              _buildDetailRow('Mood Entries',
+                  user['moodEntries']?.length.toString() ?? '0'),
+              _buildDetailRow('Recommendations',
+                  user['recommendations']?.length.toString() ?? '0'),
             ],
           ),
         ),
@@ -118,7 +138,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               _blockUser(user['_id'], user['isBlocked'] == true);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: user['isBlocked'] == true ? Colors.green : Colors.red,
+              backgroundColor:
+                  user['isBlocked'] == true ? Colors.green : Colors.red,
             ),
             child: Text(user['isBlocked'] == true ? 'Unblock' : 'Block'),
           ),
@@ -207,7 +228,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ],
             ),
           ),
-          
+
           // Users List
           Expanded(
             child: _isLoading
@@ -224,7 +245,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         itemBuilder: (context, index) {
                           final user = _filteredUsers[index];
                           final isBlocked = user['isBlocked'] == true;
-                          
+
                           return Card(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -232,7 +253,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             ),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: isBlocked ? Colors.red : AppTheme.primaryColor,
+                                backgroundColor: isBlocked
+                                    ? Colors.red
+                                    : AppTheme.primaryColor,
                                 child: Icon(
                                   isBlocked ? Icons.block : Icons.person,
                                   color: Colors.white,
@@ -252,7 +275,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   Text(
                                     'Status: ${isBlocked ? 'Blocked' : 'Active'}',
                                     style: TextStyle(
-                                      color: isBlocked ? Colors.red : Colors.green,
+                                      color:
+                                          isBlocked ? Colors.red : Colors.green,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -267,10 +291,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   ),
                                   IconButton(
                                     icon: Icon(
-                                      isBlocked ? Icons.check_circle : Icons.block,
-                                      color: isBlocked ? Colors.green : Colors.red,
+                                      isBlocked
+                                          ? Icons.check_circle
+                                          : Icons.block,
+                                      color:
+                                          isBlocked ? Colors.green : Colors.red,
                                     ),
-                                    onPressed: () => _blockUser(user['_id'], isBlocked),
+                                    onPressed: () =>
+                                        _blockUser(user['_id'], isBlocked),
                                   ),
                                 ],
                               ),

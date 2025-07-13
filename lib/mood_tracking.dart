@@ -241,7 +241,7 @@ import 'package:myapp/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 // State management for user ID
-class UserProvider with ChangeNotifier {
+class MoodUserProvider with ChangeNotifier {
   String? _userId;
 
   String? get userId => _userId;
@@ -285,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-            'http://localhost:3000/api/users/login'), // Replace with your backend IP
+            'http://192.168.2.105:3000/api/users/login'), // Replace with your backend IP
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': emailController.text,
@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final userId = data['userId'];
-        Provider.of<UserProvider>(context, listen: false).setUserId(userId);
+        Provider.of<MoodUserProvider>(context, listen: false).setUserId(userId);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MoodTrackingScreen()),
@@ -380,7 +380,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
   }
 
   Future<void> _fetchMoodHistory() async {
-    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    final userId = Provider.of<MoodUserProvider>(context, listen: false).userId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not logged in')),
@@ -394,7 +394,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/users/$userId/mood'),
+        Uri.parse('http://192.168.2.105:3000/api/users/$userId/mood'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -427,7 +427,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
       return;
     }
 
-    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    final userId = Provider.of<MoodUserProvider>(context, listen: false).userId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not logged in')),
@@ -447,7 +447,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
       });
       print('Sending mood entry: $body');
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/users/$userId/mood'),
+        Uri.parse('http://192.168.2.105:3000/api/users/$userId/mood'),
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
@@ -488,7 +488,7 @@ class _MoodTrackingScreenState extends State<MoodTrackingScreen> {
 
     try {
       final response = await http.delete(
-        Uri.parse('http://localhost:3000/api/mood/$moodId'),
+        Uri.parse('http://192.168.2.105:3000/api/mood/$moodId'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -785,7 +785,7 @@ class MoodEntry {
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (_) => UserProvider(),
+      create: (_) => MoodUserProvider(),
       child: const MyApp(),
     ),
   );

@@ -23,7 +23,6 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool isPasswordVisible = false;
-  String? selectedRole;
 
   @override
   void dispose() {
@@ -33,13 +32,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> login(BuildContext context) async {
-    if (selectedRole == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a role")),
-      );
-      return;
-    }
-
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -54,31 +46,52 @@ class _LoginPageState extends State<LoginPage> {
     final password = passwordController.text.trim();
 
     try {
-      final userType = selectedRole == "user" ? "users" : "therapists";
+      // Try to login as user first
+      bool loginSuccessful =
+          await _attemptLogin(context, email, password, "user", "users");
 
-      // Add debug print to see what's being sent
+      if (!loginSuccessful) {
+        // If user login fails, try therapist login
+        loginSuccessful = await _attemptLogin(
+            context, email, password, "therapist", "therapists");
+
+        if (!loginSuccessful) {
+          // Both failed, show error
+          if (mounted) {
+            Navigator.pop(context); // Close loading dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Invalid email or password")),
+            );
+          }
+        }
+      }
+    } catch (error) {
+      print("Login error: $error");
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: $error")),
+        );
+      }
+    }
+  }
+
+  Future<bool> _attemptLogin(BuildContext context, String email,
+      String password, String role, String userType) async {
+    try {
       print(
-          "Sending login request to: http://localhost:3000/api/${userType}/login");
-      print("Request body: ${jsonEncode({
-            "email": email,
-            "password": password,
-            "role": selectedRole,
-          })}");
+          "Attempting login as $role to: http://192.168.2.105:3000/api/$userType/login");
 
       final response = await http.post(
-        Uri.parse("http://localhost:3000/api/${userType}/login"),
+        Uri.parse("http://192.168.2.105:3000/api/$userType/login"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
           "password": password,
-          "role": selectedRole,
+          "role": role,
         }),
       );
 
-      // Close the loading dialog
-      Navigator.pop(context);
-
-      // Add debug print to see the raw response
       print("Response status code: ${response.statusCode}");
       print("Response body: ${response.body}");
 
@@ -103,7 +116,8 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         if (userId == null) {
-          throw Exception("User ID not found in response: $responseData");
+          print("User ID not found in response: $responseData");
+          return false;
         }
 
         print("Extracted userId: $userId");
@@ -113,6 +127,7 @@ class _LoginPageState extends State<LoginPage> {
 
         // Navigate to the appropriate screen
         if (mounted) {
+          Navigator.pop(context); // Close loading dialog
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -122,23 +137,14 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         }
+        return true;
       } else {
-        final errorMsg = response.body.isNotEmpty
-            ? jsonDecode(response.body)['message'] ?? "Unknown error"
-            : "Server returned ${response.statusCode}";
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: $errorMsg")),
-        );
+        // Login failed for this role, return false to try the other role
+        return false;
       }
     } catch (error) {
-      print("Login error: $error");
-      // Make sure we're still mounted before showing a SnackBar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An error occurred: $error")),
-        );
-      }
+      print("Login attempt error for $role: $error");
+      return false;
     }
   }
 
@@ -178,39 +184,10 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Admin Portal Access Button
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/admin');
-                      },
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border:
-                              Border.all(color: Colors.white.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          'Admin Portal',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: AppTheme.spacingXL),
                   _header(),
                   const SizedBox(height: AppTheme.spacingXXL),
                   _inputField(),
-                  const SizedBox(height: AppTheme.spacingL),
-                  _roleSelector(),
                   const SizedBox(height: AppTheme.spacingL),
                   _forgotPasswordButton(),
                   const SizedBox(height: AppTheme.spacingM),
@@ -367,98 +344,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _roleSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "I am a...",
-          style: AppTheme.headingSmall,
-        ),
-        const SizedBox(height: AppTheme.spacingM),
-        Row(
-          children: [
-            Expanded(
-              child: _buildRoleCard(
-                "Patient",
-                "user",
-                Icons.person_outline,
-                "Seeking mental health support",
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacingM),
-            Expanded(
-              child: _buildRoleCard(
-                "Therapist",
-                "therapist",
-                Icons.psychology_outlined,
-                "Providing mental health services",
-              ),
-            ),
-          ],
-        ),
-        if (selectedRole == null)
-          const Padding(
-            padding: EdgeInsets.only(top: AppTheme.spacingS),
-            child: Text(
-              "Please select a role",
-              style: TextStyle(color: AppTheme.errorColor, fontSize: 12),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRoleCard(
-      String title, String value, IconData icon, String description) {
-    final isSelected = selectedRole == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedRole = value;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacingM),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryColor.withOpacity(0.1)
-              : AppTheme.surfaceColor,
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? AppTheme.softShadow : null,
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected ? AppTheme.primaryColor : AppTheme.textLight,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Text(
-              title,
-              style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color:
-                    isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingXS),
-            Text(
-              description,
-              style: AppTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

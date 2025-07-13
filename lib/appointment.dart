@@ -20,7 +20,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
     with SingleTickerProviderStateMixin {
   // API base URL
   final String baseUrl =
-      'http://localhost:3000/api/appointments/user/:userId';
+      'http://192.168.2.105:3000/api/appointments/user/:userId';
 
   // States
   bool _isLoading = false;

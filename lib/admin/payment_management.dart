@@ -7,7 +7,8 @@ class PaymentManagementScreen extends StatefulWidget {
   const PaymentManagementScreen({super.key});
 
   @override
-  _PaymentManagementScreenState createState() => _PaymentManagementScreenState();
+  _PaymentManagementScreenState createState() =>
+      _PaymentManagementScreenState();
 }
 
 class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
@@ -16,11 +17,17 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
-  
+
   // Commission rate (20% for the platform)
   final double _commissionRate = 0.20;
 
-  final List<String> _filterOptions = ['All', 'Completed', 'Pending', 'Failed', 'Refunded'];
+  final List<String> _filterOptions = [
+    'All',
+    'Completed',
+    'Pending',
+    'Failed',
+    'Refunded'
+  ];
 
   // Summary data
   double _totalRevenue = 0.0;
@@ -41,7 +48,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/payments'),
+        Uri.parse('http://192.168.2.105:3000/api/payments'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -85,20 +92,21 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
     setState(() {
       _filteredPayments = _payments.where((payment) {
         final userEmail = payment['userEmail']?.toString().toLowerCase() ?? '';
-        final therapistEmail = payment['therapistEmail']?.toString().toLowerCase() ?? '';
+        final therapistEmail =
+            payment['therapistEmail']?.toString().toLowerCase() ?? '';
         final status = payment['status']?.toString().toLowerCase() ?? '';
         final paymentId = payment['_id']?.toString().toLowerCase() ?? '';
-        
+
         // Text search
-        final matchesSearch = userEmail.contains(query) || 
-                             therapistEmail.contains(query) ||
-                             status.contains(query) ||
-                             paymentId.contains(query);
-        
+        final matchesSearch = userEmail.contains(query) ||
+            therapistEmail.contains(query) ||
+            status.contains(query) ||
+            paymentId.contains(query);
+
         // Filter by status
         final matchesFilter = _selectedFilter == 'All' ||
-                             status.contains(_selectedFilter.toLowerCase());
-        
+            status.contains(_selectedFilter.toLowerCase());
+
         return matchesSearch && matchesFilter;
       }).toList();
     });
@@ -120,14 +128,21 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
             children: [
               _buildDetailRow('Payment ID', payment['_id'] ?? 'N/A'),
               _buildDetailRow('User Email', payment['userEmail'] ?? 'N/A'),
-              _buildDetailRow('Therapist Email', payment['therapistEmail'] ?? 'N/A'),
+              _buildDetailRow(
+                  'Therapist Email', payment['therapistEmail'] ?? 'N/A'),
               _buildDetailRow('Amount Paid', '\$${amount.toStringAsFixed(2)}'),
-              _buildDetailRow('Platform Commission (${(_commissionRate * 100).toInt()}%)', '\$${commission.toStringAsFixed(2)}'),
-              _buildDetailRow('Therapist Payout', '\$${therapistPayout.toStringAsFixed(2)}'),
+              _buildDetailRow(
+                  'Platform Commission (${(_commissionRate * 100).toInt()}%)',
+                  '\$${commission.toStringAsFixed(2)}'),
+              _buildDetailRow('Therapist Payout',
+                  '\$${therapistPayout.toStringAsFixed(2)}'),
               _buildDetailRow('Status', payment['status'] ?? 'N/A'),
-              _buildDetailRow('Payment Method', payment['paymentMethod'] ?? 'N/A'),
-              _buildDetailRow('Stripe Payment ID', payment['stripePaymentId'] ?? 'N/A'),
-              _buildDetailRow('Appointment ID', payment['appointmentId'] ?? 'N/A'),
+              _buildDetailRow(
+                  'Payment Method', payment['paymentMethod'] ?? 'N/A'),
+              _buildDetailRow(
+                  'Stripe Payment ID', payment['stripePaymentId'] ?? 'N/A'),
+              _buildDetailRow(
+                  'Appointment ID', payment['appointmentId'] ?? 'N/A'),
               _buildDetailRow('Created', payment['createdAt'] ?? 'N/A'),
               if (payment['refundedAt'] != null)
                 _buildDetailRow('Refunded At', payment['refundedAt']),
@@ -158,7 +173,8 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Process Refund'),
-        content: Text('Are you sure you want to process a refund for this payment of \$${payment['amount']}?'),
+        content: Text(
+            'Are you sure you want to process a refund for this payment of \$${payment['amount']}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -180,7 +196,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
   Future<void> _processRefund(String paymentId) async {
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/payments/$paymentId/refund'),
+        Uri.parse('http://192.168.2.105:3000/api/payments/$paymentId/refund'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -221,7 +237,8 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, Color color, IconData icon) {
+  Widget _buildSummaryCard(
+      String title, String value, Color color, IconData icon) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -324,12 +341,13 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Search and Filter
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search payments by user, therapist, or payment ID...',
+                    hintText:
+                        'Search payments by user, therapist, or payment ID...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -382,7 +400,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
               ],
             ),
           ),
-          
+
           // Payments List
           Expanded(
             child: _isLoading
@@ -402,7 +420,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
                           final amount = (payment['amount'] ?? 0).toDouble();
                           final commission = amount * _commissionRate;
                           final therapistPayout = amount - commission;
-                          
+
                           return Card(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -418,14 +436,18 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
                               ),
                               title: Text(
                                 '${payment['userEmail'] ?? 'Unknown User'} → ${payment['therapistEmail'] ?? 'Unknown Therapist'}',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Amount: \$${amount.toStringAsFixed(2)} | Status: $status'),
-                                  Text('Commission: \$${commission.toStringAsFixed(2)} | Therapist: \$${therapistPayout.toStringAsFixed(2)}'),
-                                  Text('Payment ID: ${payment['_id'] ?? 'N/A'}'),
+                                  Text(
+                                      'Amount: \$${amount.toStringAsFixed(2)} | Status: $status'),
+                                  Text(
+                                      'Commission: \$${commission.toStringAsFixed(2)} | Therapist: \$${therapistPayout.toStringAsFixed(2)}'),
+                                  Text(
+                                      'Payment ID: ${payment['_id'] ?? 'N/A'}'),
                                 ],
                               ),
                               trailing: IconButton(

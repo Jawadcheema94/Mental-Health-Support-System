@@ -11,6 +11,16 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners(); // Notifies all widgets listening for theme changes
   }
 
+  void setLightMode() {
+    _isDarkMode = false;
+    notifyListeners();
+  }
+
+  void setDarkMode() {
+    _isDarkMode = true;
+    notifyListeners();
+  }
+
   ThemeData get currentTheme {
     return _isDarkMode
         ? ThemeData.dark().copyWith(

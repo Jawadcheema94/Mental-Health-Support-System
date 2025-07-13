@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:myapp/theme/app_theme.dart';
 
 class TherapistDetailScreen extends StatefulWidget {
   final Map<String, dynamic> therapist;
@@ -27,7 +28,7 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
     try {
       // Create instant meeting
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/appointments/instant-visit'),
+        Uri.parse('http://192.168.2.105:3000/api/appointments/instant-visit'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': widget.userId,
@@ -95,7 +96,6 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
@@ -182,13 +182,16 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppTheme.successColor,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
                   ),
                   padding: EdgeInsets.symmetric(
                     vertical: isSmallScreen ? 16 : 20,
+                    horizontal: AppTheme.spacingL,
                   ),
+                  elevation: 3,
                 ),
                 onPressed: isStartingVisit ? null : _startInstantVisit,
                 icon: isStartingVisit
@@ -204,7 +207,7 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
                     : Icon(Icons.video_call, color: Colors.white),
                 label: Text(
                   isStartingVisit ? "Starting Visit..." : "Start a Visit",
-                  style: TextStyle(
+                  style: AppTheme.bodyLarge.copyWith(
                     color: Colors.white,
                     fontSize: isSmallScreen ? 14 : 16,
                     fontWeight: FontWeight.bold,
@@ -216,9 +219,8 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
             SizedBox(height: isSmallScreen ? 15 : 25),
             Text(
               "Or Book an Appointment",
-              style: TextStyle(
+              style: AppTheme.headingMedium.copyWith(
                 fontSize: isSmallScreen ? 14 : 16,
-                fontWeight: FontWeight.bold,
               ),
             ),
             SizedBox(height: isSmallScreen ? 5 : 10),
@@ -227,13 +229,16 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       ),
                       padding: EdgeInsets.symmetric(
                         vertical: isSmallScreen ? 12 : 16,
+                        horizontal: AppTheme.spacingM,
                       ),
+                      elevation: 2,
                     ),
                     onPressed: () {
                       Navigator.pushNamed(
@@ -247,9 +252,10 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
                     },
                     child: Text(
                       "Physical Meeting",
-                      style: TextStyle(
+                      style: AppTheme.bodyMedium.copyWith(
                         color: Colors.white,
                         fontSize: isSmallScreen ? 12 : 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -258,13 +264,16 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
+                      backgroundColor: AppTheme.secondaryColor,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       ),
                       padding: EdgeInsets.symmetric(
                         vertical: isSmallScreen ? 12 : 16,
+                        horizontal: AppTheme.spacingM,
                       ),
+                      elevation: 2,
                     ),
                     onPressed: () {
                       Navigator.pushNamed(
@@ -278,9 +287,63 @@ class _TherapistDetailScreenState extends State<TherapistDetailScreen> {
                     },
                     child: Text(
                       "Online Meeting",
-                      style: TextStyle(
+                      style: AppTheme.bodyMedium.copyWith(
                         color: Colors.white,
                         fontSize: isSmallScreen ? 12 : 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: isSmallScreen ? 16 : 20),
+
+            // Payment Section
+            Text(
+              "Payment Options",
+              style: AppTheme.headingMedium.copyWith(
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+            ),
+            SizedBox(height: isSmallScreen ? 8 : 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.warningColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isSmallScreen ? 12 : 16,
+                        horizontal: AppTheme.spacingM,
+                      ),
+                      elevation: 2,
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/payment',
+                        arguments: {
+                          'userId': widget.userId,
+                          'amount': 75.0, // Consultation fee
+                          'description':
+                              'Consultation with ${widget.therapist['name']}',
+                          'therapistId': widget.therapist['_id'],
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.payment),
+                    label: Text(
+                      "Pay Consultation Fee (\$75)",
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontSize: isSmallScreen ? 12 : 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

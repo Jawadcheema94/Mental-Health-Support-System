@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:myapp/admin.dart';
 import 'package:myapp/admin/admin_login.dart';
 import 'package:myapp/analysis.dart';
+import 'package:myapp/ai_analysis_screen.dart';
+import 'package:myapp/payment_screen.dart';
 import 'package:myapp/appointment.dart';
 import 'package:myapp/components/onboarding_screen.dart';
-import 'package:myapp/forget-password.dart';
 import 'package:myapp/journaling.dart';
 import 'package:myapp/login_page.dart';
-import 'package:myapp/mood_tracking.dart';
+import 'package:myapp/mood_journal.dart';
 import 'package:myapp/settings.dart';
 import 'package:myapp/signup_page.dart';
 import 'package:myapp/therapist.dart';
-import 'package:myapp/therapist_dashboard.dart';
 import 'package:myapp/video_call_screen.dart';
 import 'package:myapp/homepage/physical_appointment.dart';
 import 'package:myapp/homepage/online_appointment.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/services/stripe_service.dart';
+import 'package:myapp/services/localization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // COMMENTED OUT: Initialize Stripe with your publishable key
-  // Stripe.publishableKey =
-  //     'pk_test_51RCF7D2XdGiu93ZvZQcJgRtZDWfK1mxn2HyNUAMvaOBnbBfwu8opr4OIjcI1yssA92P88ZhXNsCkAODg2YemU3aR008klErbkH';
-  // await Stripe.instance.applySettings();
+  // Initialize Stripe with error handling to prevent app crashes
+  try {
+    await StripeService.init();
+    debugPrint('Stripe initialized successfully');
+  } catch (e) {
+    debugPrint('Stripe initialization failed: $e');
+    // App continues to work even if Stripe fails to initialize
+  }
+
+  // Initialize localization service
+  await LocalizationService().loadSavedLanguage();
 
   runApp(const MyApp());
 }
@@ -45,16 +52,41 @@ class MyApp extends StatelessWidget {
         '/': (context) => OnboardingScreen(),
         '/login': (context) => LoginPage(),
         '/signup': (context) => SignupPage(), // Default screen
-        '/admin': (context) => AdminLoginScreen(),
+        '/admin': (context) => const AdminLoginScreen(),
         '/therapist': (context) => TherapistScreen(),
-        '/mood_tracking': (context) =>
-            MoodTrackingScreen(), // Replace 'defaultUserType' with the actual user type
+        // '/mood_tracking': (context) =>
+        //     MoodTrackingScreen(), // Replace 'defaultUserType' with the actual user type
         '/journaling': (context) => JournalScreen(
               userId: '',
             ),
-        '/analysis': (context) => AnxietyDepressionTestScreen(),
+        '/mood_journal': (context) => MoodJournalScreen(),
+        '/analysis': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
+          return AIAnalysisScreen(
+            userId: args?['userId'] ?? '',
+          );
+        },
+        '/anxiety_depression_test': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
+          return AnxietyDepressionTestScreen(
+            userId: args?['userId'] ?? '',
+          );
+        },
+        '/payment': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
+          return PaymentScreen(
+            userId: args?['userId'] ?? '',
+            amount: args?['amount'] ?? 0.0,
+            description: args?['description'] ?? 'Mental Health Service',
+            therapistId: args?['therapistId'],
+            appointmentId: args?['appointmentId'],
+          );
+        },
         '/onboarding': (context) => OnboardingScreen(),
-        '/settings': (context) => SettingsScreen(),
+        '/settings': (context) => const SettingsScreen(userId: ''),
         '/video_call': (context) {
           final args = ModalRoute.of(context)!.settings.arguments
               as Map<String, dynamic>;
@@ -80,7 +112,8 @@ class MyApp extends StatelessWidget {
             userId: args['userId'],
           );
         },
-        // '/appointment': (context) => MyAppointmentsScreen(userId: '680aad8bdef6a277563a942c'), // Replace with your user ID and type
+        '/appointment': (context) => const MyAppointmentsScreen(
+            userId: ''), // Will be handled dynamically
       },
     );
   }

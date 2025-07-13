@@ -1,655 +1,48 @@
-// import 'package:flutter/material.dart';
-
-// class SettingsScreen extends StatelessWidget {
-//   const SettingsScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Settings'),
-//         backgroundColor: Colors.purple, // Set the app bar color to purple
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back),
-//           onPressed: () {
-//             Navigator.pop(context); // This will navigate back to the previous screen
-//           },
-//         ),
-//       ),
-//       body: Container(
-//         decoration: const BoxDecoration(
-//           gradient: LinearGradient(
-//             begin: Alignment.topLeft,
-//             end: Alignment.bottomRight,
-//             colors: [
-//               Color.fromRGBO(255, 226, 159, 1), // Light yellow
-//               Color(0xFFFFC0CB), // Light pink
-//             ],
-//           ),
-//         ),
-//         child: SafeArea(
-//           child: ListView(
-//             padding: const EdgeInsets.all(16.0),
-//             children: [
-//               const Text(
-//                 '',
-//                 style: TextStyle(
-//                   fontSize: 24,
-//                   fontWeight: FontWeight.bold,
-//                   color: Colors.purple,
-//                 ),
-//               ),
-//               const SizedBox(height: 20),
-
-//               ListTile(
-//                 leading: const Icon(Icons.person, color: Colors.purple),
-//                 title: const Text('Profile'),
-//                 subtitle: const Text('Update your personal details'),
-//                 onTap: () {
-//                   // Navigate to profile update screen
-//                 },
-//               ),
-//               const Divider(),
-
-//               ListTile(
-//                 leading: const Icon(Icons.notifications, color: Colors.purple),
-//                 title: const Text('Notifications'),
-//                 subtitle: const Text('Manage app notifications and reminders'),
-//                 onTap: () {
-//                   // Navigate to notifications settings
-//                 },
-//               ),
-//               const Divider(),
-
-//               ListTile(
-//                 leading: const Icon(Icons.color_lens, color: Colors.purple),
-//                 title: const Text('Theme'),
-//                 subtitle: const Text('Choose light or dark mode'),
-//                 onTap: () {
-//                   // Navigate to theme settings
-//                 },
-//               ),
-//               const Divider(),
-//               ListTile(
-//                 leading: const Icon(Icons.language, color: Colors.purple),
-//                 title: const Text('Language'),
-//                 subtitle: const Text('Select your preferred language'),
-//                 onTap: () {
-//                   // Navigate to language settings
-//                 },
-//               ),
-//               const Divider(),
-
-//               ListTile(
-//                 leading: const Icon(Icons.lock, color: Colors.purple),
-//                 title: const Text('Security'),
-//                 subtitle: const Text('Manage PIN and biometric settings'),
-//                 onTap: () {
-//                   // Navigate to security settings
-//                 },
-//               ),
-//               const Divider(),
-
-//               ListTile(
-//                 leading: const Icon(Icons.info, color: Colors.purple),
-//                 title: const Text('About'),
-//                 subtitle: const Text('Learn more about the app'),
-//                 onTap: () {
-//                   // Navigate to about screen
-//                 },
-//               ),
-//               ListTile(
-//                 leading: const Icon(Icons.help, color: Colors.purple),
-//                 title: const Text('Support'),
-//                 subtitle: const Text('Contact support or view FAQs'),
-//                 onTap: () {
-//                   // Navigate to support screen
-//                 },
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// import 'package:flutter/material.dart';
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
-
-// class SettingsScreen extends StatefulWidget {
-//   const SettingsScreen({super.key});
-
-//   @override
-//   _SettingsScreenState createState() => _SettingsScreenState();
-// }
-
-// class _SettingsScreenState extends State<SettingsScreen> {
-//   final _formKey = GlobalKey<FormState>();
-//   String username = '';
-//   String email = '';
-//   String role = '';
-//   String password = '';
-//   String confirmPassword = '';
-//   File? _profileImage;
-//   bool _isLoading = false;
-//   String? _errorMessage;
-//   String? _successMessage;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     // Fetch initial user data (mocked for now, replace with actual API call)
-//     fetchUserData();
-//   }
-
-//   Future<void> fetchUserData() async {
-//     // Replace with actual API call to fetch user data
-//     setState(() {
-//       username = 'current_user'; // Mocked data
-//       email = 'user@example.com';
-//       role = 'user';
-//     });
-//   }
-
-//   Future<void> _pickImage() async {
-//     final picker = ImagePicker();
-//     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-//     if (pickedFile != null) {
-//       setState(() {
-//         _profileImage = File(pickedFile.path);
-//       });
-//     }
-//   }
-
-//   Future<void> updateUser() async {
-//     if (!_formKey.currentState!.validate()) return;
-
-//     setState(() {
-//       _isLoading = true;
-//       _errorMessage = null;
-//       _successMessage = null;
-//     });
-
-//     try {
-//       final response = await http.put(
-//         Uri.parse('YOUR_API_BASE_URL/users/${username}'), // Replace with actual API URL
-//         headers: {'Content-Type': 'application/json'},
-//         body: jsonEncode({
-//           'username': username,
-//           'email': email,
-//           'role': role,
-//         }),
-//       );
-
-//       if (response.statusCode == 200) {
-//         setState(() {
-//           _successMessage = 'Profile updated successfully';
-//         });
-//       } else {
-//         setState(() {
-//           _errorMessage = jsonDecode(response.body)['message'] ?? 'Failed to update profile';
-//         });
-//       }
-//     } catch (e) {
-//       setState(() {
-//         _errorMessage = 'An error occurred: $e';
-//       });
-//     } finally {
-//       setState(() {
-//         _isLoading = false;
-//       });
-//     }
-//   }
-
-//   Future<void> deleteUser() async {
-//     setState(() {
-//       _isLoading = true;
-//       _errorMessage = null;
-//       _successMessage = null;
-//     });
-
-//     try {
-//       final response = await http.delete(
-//         Uri.parse('YOUR_API_BASE_URL/users/${username}'), // Replace with actual API URL
-//       );
-
-//       if (response.statusCode == 200) {
-//         setState(() {
-//           _successMessage = 'Account deleted successfully';
-//           // Optionally navigate away or reset form
-//         });
-//       } else {
-//         setState(() {
-//           _errorMessage = jsonDecode(response.body)['message'] ?? 'Failed to delete account';
-//         });
-//       }
-//     } catch (e) {
-//       setState(() {
-//         _errorMessage = 'An error occurred: $e';
-//       });
-//     } finally {
-//       setState(() {
-//         _isLoading = false;
-//       });
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Profile Settings'),
-//         backgroundColor: Colors.purple,
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back),
-//           onPressed: () {
-//             Navigator.pop(context);
-//           },
-//         ),
-//       ),
-//       body: Container(
-//         decoration: const BoxDecoration(
-//           gradient: LinearGradient(
-//             begin: Alignment.topLeft,
-//             end: Alignment.bottomRight,
-//             colors: [
-//               Color.fromRGBO(255, 226, 159, 1),
-//               Color(0xFFFFC0CB),
-//             ],
-//           ),
-//         ),
-//         child: SafeArea(
-//           child: Padding(
-//             padding: const EdgeInsets.all(16.0),
-//             child: Form(
-//               key: _formKey,
-//               child: ListView(
-//                 children: [
-//                   // Profile Picture
-//                   Center(
-//                     child: GestureDetector(
-//                       onTap: _pickImage,
-//                       child: CircleAvatar(
-//                         radius: 50,
-//                         backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-//                         child: _profileImage == null
-//                             ? const Icon(Icons.person, size: 50, color: Colors.purple)
-//                             : null,
-//                       ),
-//                     ),
-//                   ),
-//                   const SizedBox(height: 10),
-//                   Center(
-//                     child: TextButton(
-//                       onPressed: _pickImage,
-//                       child: const Text(
-//                         'Change Profile Picture',
-//                         style: TextStyle(color: Colors.purple),
-//                       ),
-//                     ),
-//                   ),
-//                   const SizedBox(height: 20),
-
-//                   // Username
-//                   TextFormField(
-//                     initialValue: username,
-//                     decoration: const InputDecoration(
-//                       labelText: 'Username',
-//                       border: OutlineInputBorder(),
-//                       prefixIcon: Icon(Icons.person, color: Colors.purple),
-//                     ),
-//                     onChanged: (value) => setState(() => username = value),
-//                     validator: (value) {
-//                       if (value == null || value.isEmpty) {
-//                         return 'Please enter a username';
-//                       }
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Email
-//                   TextFormField(
-//                     initialValue: email,
-//                     decoration: const InputDecoration(
-//                       labelText: 'Email',
-//                       border: OutlineInputBorder(),
-//                       prefixIcon: Icon(Icons.email, color: Colors.purple),
-//                     ),
-//                     onChanged: (value) => setState(() => email = value),
-//                     validator: (value) {
-//                       if (value == null || value.isEmpty) {
-//                         return 'Please enter an email';
-//                       }
-//                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-//                         return 'Please enter a valid email';
-//                       }
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Role
-//                   DropdownButtonFormField<String>(
-//                     value: role.isNotEmpty ? role : null,
-//                     decoration: const InputDecoration(
-//                       labelText: 'Role',
-//                       border: OutlineInputBorder(),
-//                       prefixIcon: Icon(Icons.work, color: Colors.purple),
-//                     ),
-//                     items: ['user', 'therapist'].map((String role) {
-//                       return DropdownMenuItem<String>(
-//                         value: role,
-//                         child: Text(role),
-//                       );
-//                     }).toList(),
-//                     onChanged: (value) => setState(() => role = value!),
-//                     validator: (value) {
-//                       if (value == null || value.isEmpty) {
-//                         return 'Please select a role';
-//                       }
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Password
-//                   TextFormField(
-//                     decoration: const InputDecoration(
-//                       labelText: 'New Password',
-//                       border: OutlineInputBorder(),
-//                       prefixIcon: Icon(Icons.lock, color: Colors.purple),
-//                     ),
-//                     obscureText: true,
-//                     onChanged: (value) => setState(() => password = value),
-//                     validator: (value) {
-//                       if (value != null && value.isNotEmpty && value.length < 6) {
-//                         return 'Password must be at least 6 characters';
-//                       }
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Confirm Password
-//                   TextFormField(
-//                     decoration: const InputDecoration(
-//                       labelText: 'Confirm Password',
-//                       border: OutlineInputBorder(),
-//                       prefixIcon: Icon(Icons.lock, color: Colors.purple),
-//                     ),
-//                     obscureText: true,
-//                     onChanged: (value) => setState(() => confirmPassword = value),
-//                     validator: (value) {
-//                       if (value != null && value.isNotEmpty && value != password) {
-//                         return 'Passwords do not match';
-//                       }
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 20),
-
-//                   // Error/Success Messages
-//                   if (_errorMessage != null)
-//                     Text(
-//                       _errorMessage!,
-//                       style: const TextStyle(color: Colors.red),
-//                       textAlign: TextAlign.center,
-//                     ),
-//                   if (_successMessage != null)
-//                     Text(
-//                       _successMessage!,
-//                       style: const TextStyle(color: Colors.green),
-//                       textAlign: TextAlign.center,
-//                     ),
-//                   const SizedBox(height: 20),
-
-//                   // Update Button
-//                   ElevatedButton(
-//                     onPressed: _isLoading ? null : updateUser,
-//                     style: ElevatedButton.styleFrom(
-//                       backgroundColor: Colors.purple,
-//                       padding: const EdgeInsets.symmetric(vertical: 16),
-//                     ),
-//                     child: _isLoading
-//                         ? const CircularProgressIndicator(color: Colors.white)
-//                         : const Text(
-//                             'Update Profile',
-//                             style: TextStyle(color: Colors.white),
-//                           ),
-//                   ),
-//                   const SizedBox(height: 16),
-
-//                   // Delete Account Button
-//                   OutlinedButton(
-//                     onPressed: _isLoading
-//                         ? null
-//                         : () {
-//                             showDialog(
-//                               context: context,
-//                               builder: (context) => AlertDialog(
-//                                 title: const Text('Delete Account'),
-//                                 content: const Text(
-//                                     'Are you sure you want to delete your account? This action cannot be undone.'),
-//                                 actions: [
-//                                   TextButton(
-//                                     onPressed: () => Navigator.pop(context),
-//                                     child: const Text('Cancel'),
-//                                   ),
-//                                   TextButton(
-//                                     onPressed: () {
-//                                       Navigator.pop(context);
-//                                       deleteUser();
-//                                     },
-//                                     child: const Text(
-//                                       'Delete',
-//                                       style: TextStyle(color: Colors.red),
-//                                     ),
-//                                   ),
-//                                 ],
-//                               ),
-//                             );
-//                           },
-//                     style: OutlinedButton.styleFrom(
-//                       side: const BorderSide(color: Colors.red),
-//                       padding: const EdgeInsets.symmetric(vertical: 16),
-//                     ),
-//                     child: const Text(
-//                       'Delete Account',
-//                       style: TextStyle(color: Colors.red),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/screens/settings/notifications_settings_screen.dart';
+import 'package:myapp/screens/settings/theme_settings_screen.dart';
+import 'package:myapp/screens/settings/language_settings_screen.dart';
+import 'package:myapp/screens/settings/security_settings_screen.dart';
+import 'package:myapp/screens/settings/about_screen.dart';
+import 'package:myapp/screens/settings/support_screen.dart';
+import 'package:myapp/screens/settings/payment_methods_screen.dart';
+import 'package:myapp/screens/settings/update_profile_screen.dart';
+import 'package:myapp/screens/settings/change_password_screen.dart';
+import 'package:myapp/login_page.dart';
+import 'package:myapp/components/custom_bottom_nav.dart';
+import 'package:myapp/home_page.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Colors.purple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1),
-              Color(0xFFFFC0CB),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.person, color: Colors.purple),
-                title: const Text('Update Profile'),
-                subtitle: const Text('Update your personal details'),
-                onTap: () {
-                  // Replace 'user_id' with the actual user ID (a valid MongoDB ObjectId, e.g., '507f1f77bcf86cd799439011')
-                  // This ID should come from your authentication flow (e.g., user._id from login response)
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const UpdateUserScreen(userId: 'user_id'),
-                    ),
-                  );
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.lock, color: Colors.purple),
-                title: const Text('Change Password'),
-                subtitle: const Text('Update your password'),
-                onTap: () {
-                  // Replace 'user_id' with the actual user ID (a valid MongoDB ObjectId, e.g., '507f1f77bcf86cd799439011')
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ChangePasswordScreen(userId: 'user_id'),
-                    ),
-                  );
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.notifications, color: Colors.purple),
-                title: const Text('Notifications'),
-                subtitle: const Text('Manage app notifications and reminders'),
-                onTap: () {
-                  // Navigate to notifications settings
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.color_lens, color: Colors.purple),
-                title: const Text('Theme'),
-                subtitle: const Text('Choose light or dark mode'),
-                onTap: () {
-                  // Navigate to theme settings
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.language, color: Colors.purple),
-                title: const Text('Language'),
-                subtitle: const Text('Select your preferred language'),
-                onTap: () {
-                  // Navigate to language settings
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.lock, color: Colors.purple),
-                title: const Text('Security'),
-                subtitle: const Text('Manage PIN and biometric settings'),
-                onTap: () {
-                  // Navigate to security settings
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.info, color: Colors.purple),
-                title: const Text('About'),
-                subtitle: const Text('Learn more about the app'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AboutScreen(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.help, color: Colors.purple),
-                title: const Text('Support'),
-                subtitle: const Text('Contact support or view FAQs'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SupportScreen(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class UpdateUserScreen extends StatefulWidget {
+class SettingsScreen extends StatefulWidget {
   final String userId;
-  const UpdateUserScreen({super.key, required this.userId});
+
+  const SettingsScreen({super.key, required this.userId});
 
   @override
-  _UpdateUserScreenState createState() => _UpdateUserScreenState();
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _UpdateUserScreenState extends State<UpdateUserScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _SettingsScreenState extends State<SettingsScreen> {
   String username = '';
   String email = '';
-  String role = '';
-  File? _profileImage;
   bool _isLoading = false;
-  String? _errorMessage;
-  String? _successMessage;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    _loadUserData();
   }
 
-  Future<void> fetchUserData() async {
+  Future<void> _loadUserData() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/users/${widget.userId}'),
+        Uri.parse('http://192.168.2.105:3000/api/users/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -658,102 +51,15 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
         setState(() {
           username = userData['username'] ?? '';
           email = userData['email'] ?? '';
-          role = userData['role'] ?? 'user';
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = jsonDecode(response.body)['message'] ??
-              'Failed to fetch user data';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error fetching user data: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<void> updateUser() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      final response = await http.put(
-        Uri.parse('http://localhost:3000/api/users/${widget.userId}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username,
-          'email': email,
-          'role': role,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _successMessage = 'Profile updated successfully';
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = jsonDecode(response.body)['message'] ??
-              'Failed to update profile';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error updating profile: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> deleteUser() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      final response = await http.delete(
-        Uri.parse('http://localhost:3000/api/users/${widget.userId}'),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _successMessage = 'Account deleted successfully';
-          _isLoading = false;
-          Navigator.pop(context);
-        });
-      } else {
-        setState(() {
-          _errorMessage = jsonDecode(response.body)['message'] ??
-              'Failed to delete account';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error deleting account: $e';
         _isLoading = false;
       });
     }
@@ -761,591 +67,424 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 600;
-    final double paddingValue = isLargeScreen ? 24.0 : 16.0;
-    final double fontSize = isLargeScreen ? 18.0 : 16.0;
-    final double iconSize = isLargeScreen ? 60.0 : 50.0;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update Profile'),
-        backgroundColor: Colors.purple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1),
-              Color(0xFFFFC0CB),
-            ],
-          ),
+          gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(paddingValue),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.purple))
-                : Form(
-                    key: _formKey,
-                    child: ListView(
-                      shrinkWrap: true,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        Center(
-                          child: GestureDetector(
-                            onTap: _pickImage,
-                            child: CircleAvatar(
-                              radius: iconSize,
-                              backgroundImage: _profileImage != null
-                                  ? FileImage(_profileImage!)
-                                  : null,
-                              child: _profileImage == null
-                                  ? Icon(Icons.person,
-                                      size: iconSize, color: Colors.purple)
-                                  : null,
+          child: Column(
+            children: [
+              // Custom App Bar
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back_ios),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppTheme.surfaceColor,
+                        foregroundColor: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingM),
+                    Text(
+                      'Settings',
+                      style: AppTheme.headingLarge.copyWith(
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  children: [
+                    // Profile Section
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      padding: const EdgeInsets.all(AppTheme.spacingL),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              size: 30,
+                              color: AppTheme.primaryColor,
                             ),
                           ),
-                        ),
-                        SizedBox(height: paddingValue / 2),
-                        Center(
-                          child: TextButton(
-                            onPressed: _pickImage,
-                            child: Text(
-                              'Change Profile Picture',
-                              style: TextStyle(
-                                  color: Colors.purple, fontSize: fontSize),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: paddingValue),
-                        TextFormField(
-                          initialValue: username,
-                          decoration: const InputDecoration(
-                            labelText: 'Username',
-                            border: OutlineInputBorder(),
-                            prefixIcon:
-                                Icon(Icons.person, color: Colors.purple),
-                          ),
-                          style: TextStyle(fontSize: fontSize),
-                          onChanged: (value) =>
-                              setState(() => username = value),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a username';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: paddingValue),
-                        TextFormField(
-                          initialValue: email,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.email, color: Colors.purple),
-                          ),
-                          style: TextStyle(fontSize: fontSize),
-                          onChanged: (value) => setState(() => email = value),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter an email';
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value)) {
-                              return 'Please enter a valid email';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: paddingValue),
-                        DropdownButtonFormField<String>(
-                          value: role.isNotEmpty ? role : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Role',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.work, color: Colors.purple),
-                          ),
-                          style: TextStyle(fontSize: fontSize),
-                          items: ['user', 'admin'].map((String role) {
-                            return DropdownMenuItem<String>(
-                              value: role,
-                              child: Text(role,
-                                  style: TextStyle(fontSize: fontSize)),
-                            );
-                          }).toList(),
-                          onChanged: (value) => setState(() => role = value!),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a role';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: paddingValue),
-                        if (_errorMessage != null)
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                                color: Colors.red, fontSize: fontSize),
-                            textAlign: TextAlign.center,
-                          ),
-                        if (_successMessage != null)
-                          Text(
-                            _successMessage!,
-                            style: TextStyle(
-                                color: Colors.green, fontSize: fontSize),
-                            textAlign: TextAlign.center,
-                          ),
-                        SizedBox(height: paddingValue),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : updateUser,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            padding:
-                                EdgeInsets.symmetric(vertical: paddingValue),
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : Text(
-                                  'Update Profile',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: fontSize),
+                          const SizedBox(width: AppTheme.spacingM),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  username.isNotEmpty ? username : 'Loading...',
+                                  style: AppTheme.headingSmall.copyWith(
+                                    color: AppTheme.textPrimary,
+                                  ),
                                 ),
-                        ),
-                        SizedBox(height: paddingValue),
-                        OutlinedButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Delete Account'),
-                                      content: const Text(
-                                          'Are you sure you want to delete your account? This action cannot be undone.'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            deleteUser();
-                                          },
-                                          child: const Text(
-                                            'Delete',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.red),
-                            padding:
-                                EdgeInsets.symmetric(vertical: paddingValue),
+                                const SizedBox(height: 4),
+                                Text(
+                                  email.isNotEmpty ? email : 'Loading...',
+                                  style: AppTheme.bodyMedium.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Text(
-                            'Delete Account',
-                            style: TextStyle(
-                                color: Colors.red, fontSize: fontSize),
-                          ),
-                        ),
-                        SizedBox(height: paddingValue),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
-class ChangePasswordScreen extends StatefulWidget {
-  final String userId;
-  const ChangePasswordScreen({super.key, required this.userId});
+                    const SizedBox(height: AppTheme.spacingL),
 
-  @override
-  _ChangePasswordScreenState createState() => _ChangePasswordScreenState();
-}
-
-class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
-  String id = '';
-  String oldPassword = '';
-  String newPassword = '';
-  String confirmPassword = '';
-  bool _isLoading = false;
-  String? _errorMessage;
-  String? _successMessage;
-
-  Future<void> changePassword() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (oldPassword.isEmpty || newPassword.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please provide both old and new passwords';
-      });
-      return;
-    }
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    id = prefs.getString('userId') ?? '0';
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      final response = await http.put(
-        Uri.parse('http://localhost:3000/api/users/change-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id': id,
-          'oldPassword': oldPassword,
-          'newPassword': newPassword,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _successMessage = 'Password updated successfully';
-          oldPassword = '';
-          newPassword = '';
-          confirmPassword = '';
-          _isLoading = false;
-        });
-      } else {
-        final errorMsg =
-            jsonDecode(response.body)['message'] ?? 'Failed to update password';
-        setState(() {
-          _errorMessage = errorMsg;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error updating password: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 600;
-    final double paddingValue = isLargeScreen ? 24.0 : 16.0;
-    final double fontSize = isLargeScreen ? 18.0 : 16.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Change Password'),
-        backgroundColor: AppTheme.primaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1),
-              Color(0xFFFFC0CB),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(paddingValue),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.purple))
-                : Form(
-                    key: _formKey,
-                    child: ListView(
-                      shrinkWrap: true,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'Old Password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock, color: Colors.purple),
+                    // Settings Options
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      child: Column(
+                        children: [
+                          _buildSettingsTile(
+                            icon: Icons.person_outline,
+                            title: 'Update Profile',
+                            subtitle: 'Edit your personal information',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UpdateProfileScreen(
+                                      userId: widget.userId),
+                                ),
+                              );
+                            },
                           ),
-                          style: TextStyle(fontSize: fontSize),
-                          obscureText: true,
-                          onChanged: (value) =>
-                              setState(() => oldPassword = value),
-                        ),
-                        SizedBox(height: paddingValue),
-                        TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'New Password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock, color: Colors.purple),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.lock_outline,
+                            title: 'Change Password',
+                            subtitle: 'Update your account password',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChangePasswordScreen(
+                                      userId: widget.userId),
+                                ),
+                              );
+                            },
                           ),
-                          style: TextStyle(fontSize: fontSize),
-                          obscureText: true,
-                          onChanged: (value) =>
-                              setState(() => newPassword = value),
-                          validator: (value) {
-                            if (value != null &&
-                                value.isNotEmpty &&
-                                value.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: paddingValue),
-                        TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm New Password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock, color: Colors.purple),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.payment,
+                            title: 'Payment Methods',
+                            subtitle: 'Manage your payment options',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PaymentMethodsScreen(
+                                      userId: widget.userId),
+                                ),
+                              );
+                            },
                           ),
-                          style: TextStyle(fontSize: fontSize),
-                          obscureText: true,
-                          onChanged: (value) =>
-                              setState(() => confirmPassword = value),
-                          validator: (value) {
-                            if (value != null &&
-                                value.isNotEmpty &&
-                                value != newPassword) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: paddingValue),
-                        if (_errorMessage != null)
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                                color: Colors.red, fontSize: fontSize),
-                            textAlign: TextAlign.center,
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.notifications,
+                            title: 'Notifications',
+                            subtitle: 'Configure notification preferences',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationsSettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
-                        if (_successMessage != null)
-                          Text(
-                            _successMessage!,
-                            style: TextStyle(
-                                color: Colors.green, fontSize: fontSize),
-                            textAlign: TextAlign.center,
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.palette_outlined,
+                            title: 'Theme',
+                            subtitle: 'Choose your preferred theme',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ThemeSettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
-                        SizedBox(height: paddingValue),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : changePassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            padding:
-                                EdgeInsets.symmetric(vertical: paddingValue),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.language,
+                            title: 'Language',
+                            subtitle: 'Select your language',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const LanguageSettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          child: Text(
-                            'Change Password',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: fontSize),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.security,
+                            title: 'Security',
+                            subtitle: 'Manage security settings',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SecuritySettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                        SizedBox(height: paddingValue),
-                      ],
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.info_outline,
+                            title: 'About',
+                            subtitle: 'App information and version',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AboutScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.help_outline,
+                            title: 'Support',
+                            subtitle: 'Get help and contact support',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SupportScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          _buildSettingsTile(
+                            icon: Icons.logout,
+                            title: 'Logout',
+                            subtitle: 'Sign out of your account',
+                            onTap: () {
+                              _showLogoutDialog();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
+      ),
+      bottomNavigationBar: CustomBottomNav(
+        userId: widget.userId,
+        currentIndex: 2, // Settings is index 2
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HomeScreen(userId: widget.userId),
+                ),
+                (route) => false,
+              );
+              break;
+            case 1:
+              Navigator.pushNamed(
+                context,
+                '/analysis',
+                arguments: {'userId': widget.userId},
+              );
+              break;
+            case 2:
+              // Already on settings - do nothing
+              break;
+          }
+        },
       ),
     );
   }
-}
 
-class SupportScreen extends StatelessWidget {
-  const SupportScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 600;
-    final double titleFontSize = isLargeScreen ? 28 : 24;
-    final double bodyFontSize = isLargeScreen ? 18 : 16;
-    final double iconSize = isLargeScreen ? 32 : 24;
-    final double paddingValue = isLargeScreen ? 24.0 : 16.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Support'),
-        backgroundColor: Colors.purple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1),
-              Color(0xFFFFC0CB),
-            ],
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
           ),
-        ),
-        child: SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(paddingValue),
+          title: Row(
             children: [
-              Text(
-                'Contact Support',
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingS),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              const Text(
+                'Logout',
                 style: TextStyle(
-                  fontSize: titleFontSize,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple,
+                  color: AppTheme.textPrimary,
                 ),
               ),
-              SizedBox(height: paddingValue),
-              Text(
-                'For any issues or inquiries, please reach out to our support team via email:',
-                style: TextStyle(fontSize: bodyFontSize, color: Colors.black87),
-              ),
-              SizedBox(height: paddingValue),
-              ListTile(
-                leading:
-                    Icon(Icons.email, color: Colors.purple, size: iconSize),
-                title: Text(
-                  'bscs2112134@szabist.pk',
-                  style: TextStyle(fontSize: bodyFontSize),
-                ),
-                onTap: () {
-                  // Optionally add email client launch functionality
-                },
-              ),
-              ListTile(
-                leading:
-                    Icon(Icons.email, color: Colors.purple, size: iconSize),
-                title: Text(
-                  'bscs2112117@szabist.pk',
-                  style: TextStyle(fontSize: bodyFontSize),
-                ),
-                onTap: () {
-                  // Optionally add email client launch functionality
-                },
-              ),
-              SizedBox(height: paddingValue * 2),
-              Text(
-                'We are here to help you with any questions or concerns. Our team typically responds within 24-48 hours.',
-                style: TextStyle(fontSize: bodyFontSize, color: Colors.black87),
-              ),
-              SizedBox(height: paddingValue * 2),
             ],
           ),
-        ),
-      ),
+          content: const Text(
+            'Are you sure you want to logout? You will need to sign in again to access your account.',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppTheme.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _performLogout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingL,
+                  vertical: AppTheme.spacingM,
+                ),
+              ),
+              child: const Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
-}
 
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
+  void _performLogout() {
+    // Clear any stored user data/tokens here if needed
+    // For now, just navigate to login screen
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (route) => false, // Remove all previous routes
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 600;
-    final double titleFontSize = isLargeScreen ? 28 : 24;
-    final double bodyFontSize = isLargeScreen ? 18 : 16;
-    final double paddingValue = isLargeScreen ? 24.0 : 16.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('About MindEase'),
-        backgroundColor: Colors.purple,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingS),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        ),
+        child: Icon(
+          icon,
+          color: AppTheme.primaryColor,
+          size: 24,
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromRGBO(255, 226, 159, 1),
-              Color(0xFFFFC0CB),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(paddingValue),
-            children: [
-              Text(
-                'About MindEase',
-                style: TextStyle(
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple,
-                ),
-              ),
-              SizedBox(height: paddingValue),
-              Text(
-                'MindEase is a mental health platform designed to make professional support accessible and convenient. Our mission is to empower individuals to prioritize their mental well-being by connecting them with licensed therapists and providing tools to manage their mental health journey.',
-                style: TextStyle(fontSize: bodyFontSize, color: Colors.black87),
-              ),
-              SizedBox(height: paddingValue),
-              Text(
-                'Key Features:',
-                style: TextStyle(
-                  fontSize: bodyFontSize + 2,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple,
-                ),
-              ),
-              SizedBox(height: paddingValue / 2),
-              Text(
-                '• Therapist Directory: Browse and search for licensed therapists by name, with detailed profiles to help you find the right match.\n'
-                '• User Profiles: Personalize your experience by managing your profile, including username, email, and profile picture.\n'
-                '• Responsive Design: Enjoy a seamless experience across devices, with intuitive navigation to access therapist details and settings.\n'
-                '• Support Access: Reach out to our dedicated support team for assistance whenever needed.',
-                style: TextStyle(fontSize: bodyFontSize, color: Colors.black87),
-              ),
-              SizedBox(height: paddingValue),
-              Text(
-                'At MindEase, we believe mental health matters. Join us in creating a world where everyone has the support they need to thrive.',
-                style: TextStyle(fontSize: bodyFontSize, color: Colors.black87),
-              ),
-              SizedBox(height: paddingValue),
-            ],
-          ),
+      title: Text(
+        title,
+        style: AppTheme.bodyLarge.copyWith(
+          color: AppTheme.textPrimary,
+          fontWeight: FontWeight.w500,
         ),
       ),
+      subtitle: Text(
+        subtitle,
+        style: AppTheme.bodySmall.copyWith(
+          color: AppTheme.textSecondary,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: AppTheme.textLight,
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      color: AppTheme.borderColor,
+      indent: AppTheme.spacingL,
+      endIndent: AppTheme.spacingL,
     );
   }
 }

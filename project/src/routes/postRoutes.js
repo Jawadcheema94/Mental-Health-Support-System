@@ -4,7 +4,8 @@ const { validatePost } = require('../middleware/validators');
 const PostController = require('../controllers/postController');
 
 router.get('/', PostController.getAllPosts);
-router.get('/:id', PostController.getmoodById);
+router.get('/:userId', PostController.getmoodById);
+router.post('/', PostController.moodentry);
 router.post('/entry', PostController.moodentry);
 router.delete('/:id', PostController.deletePost);
 

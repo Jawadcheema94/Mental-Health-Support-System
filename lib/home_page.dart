@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:math';
 import 'package:intl/intl.dart';
-import 'package:myapp/login_page.dart';
-import 'package:myapp/therapist_screen.dart';
-import 'package:myapp/homepage/All_therapist_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/services.dart';
 import 'package:myapp/theme/app_theme.dart';
-import 'package:myapp/components/modern_card.dart';
-import 'package:myapp/components/modern_button.dart';
 import 'package:myapp/user_appointments_screen.dart';
+import 'package:myapp/services/location_service.dart';
+import 'package:myapp/components/custom_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -19,17 +13,19 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.userId});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? userDetails;
   List<dynamic>? therapists;
+  List<dynamic>? filteredTherapists;
   bool isLoading = true;
   String? errorMessage;
   String? meetLink;
   bool isCreatingMeet = false;
   Map<String, dynamic>? userLocation;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -37,11 +33,39 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserDetails();
     _fetchTherapists();
     _fetchUserLocation();
+    _searchController.addListener(_filterTherapists);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterTherapists() {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) {
+      setState(() {
+        filteredTherapists = therapists;
+      });
+    } else {
+      setState(() {
+        filteredTherapists = therapists?.where((therapist) {
+          final name = therapist['name']?.toString().toLowerCase() ?? '';
+          final specialty =
+              therapist['specialty']?.toString().toLowerCase() ?? '';
+          final location =
+              therapist['location']?.toString().toLowerCase() ?? '';
+          return name.contains(query) ||
+              specialty.contains(query) ||
+              location.contains(query);
+        }).toList();
+      });
+    }
   }
 
   Future<void> _fetchUserDetails() async {
-    final url = 'http://localhost:3000/api/users/${widget.userId}';
-    print('Fetching user details from: $url'); // Debug log
+    final url = 'http://192.168.2.105:3000/api/users/${widget.userId}';
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -49,8 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
           "Content-Type": "application/json"
         }, // Add content type header
       );
-      print('Response status: ${response.statusCode}'); // Debug log
-      print('Response body: ${response.body}'); // Debug log
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -75,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print('Error fetching user details: $e'); // Debug log
       setState(() {
         errorMessage = 'An error occurred while connecting to the server';
         isLoading = false;
@@ -84,12 +105,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchTherapists() async {
-    const url = 'http://localhost:3000/api/therapists';
+    const url = 'http://192.168.2.105:3000/api/therapists';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         setState(() {
           therapists = jsonDecode(response.body);
+          filteredTherapists = therapists; // Initialize filtered list
         });
       } else {
         setState(() {
@@ -103,101 +125,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _searchByLocationName(String placeName) async {
-    final query = Uri.encodeComponent(placeName);
-    final url =
-        'https://nominatim.openstreetmap.org/search?q=$query&format=json';
-
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data.isNotEmpty) {
-          final lat = double.parse(data[0]['lat']);
-          final lon = double.parse(data[0]['lon']);
-          print('Coordinates: $lat, $lon');
-
-          await _fetchNearbyTherapistsWithCoordinates(lat, lon);
-        } else {
-          setState(() {
-            errorMessage = 'No results found for "$placeName"';
-          });
-        }
-      } else {
-        setState(() {
-          errorMessage = 'Failed to geocode location';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Geocoding error: $e';
-      });
-    }
-  }
-
-  Future<void> _fetchNearbyTherapistsWithCoordinates(
-      double lat, double lng) async {
-    final url =
-        'http://localhost:3000/api/therapists/nearby?lat=$lat&lng=$lng&radius=10';
-
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          therapists = data['therapists'];
-        });
-      } else {
-        setState(() {
-          errorMessage = 'Failed to load nearby therapists';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Error fetching therapists: $e';
-      });
-    }
-  }
-
   Future<void> _fetchUserLocation() async {
     try {
-      print('Fetching user location...');
+      // Try to get the best available location (GPS first, then IP)
+      final location = await LocationService.getBestAvailableLocation();
 
-      // Use IP-based location
-      await _getIPBasedLocation();
-    } catch (e) {
-      print('Error fetching location: $e');
-      setState(() {
-        userLocation = null;
-      });
-    }
-  }
-
-  Future<void> _getIPBasedLocation() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://localhost:3000/api/location/ip-geo'),
-      );
-
-      print('IP Location API response status: ${response.statusCode}');
-      print('IP Location API response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final locationData = jsonDecode(response.body);
-        locationData['source'] = 'IP';
+      if (location != null) {
         setState(() {
-          userLocation = locationData;
+          userLocation = location;
         });
-        print('IP Location data set: $locationData');
+
+        // Update user location in backend if GPS was used
+        if (location['source'] == 'GPS') {
+          await LocationService.updateUserLocation(
+            widget.userId,
+            location['latitude'],
+            location['longitude'],
+          );
+        }
       } else {
-        print(
-            'Failed to fetch IP location: ${response.statusCode} - ${response.body}');
         setState(() {
           userLocation = null;
         });
       }
     } catch (e) {
-      print('Error fetching IP location: $e');
       setState(() {
         userLocation = null;
       });
@@ -223,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Fetch therapists from API
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/therapists'),
+        Uri.parse('http://192.168.2.105:3000/api/therapists'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -283,67 +234,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<dynamic> _filterTherapistsByDistance(
-      List<dynamic> therapists, double userLat, double userLon) {
-    const double maxDistanceKm = 50.0; // 50km radius
-
-    List<Map<String, dynamic>> therapistsWithDistance = [];
-
-    for (var therapist in therapists) {
-      // For demo purposes, assign random coordinates near user location
-      // In a real app, therapists would have actual coordinates in the database
-      double therapistLat =
-          userLat + (Random().nextDouble() - 0.5) * 0.5; // ±0.25 degrees
-      double therapistLon = userLon + (Random().nextDouble() - 0.5) * 0.5;
-
-      double distance =
-          _calculateDistance(userLat, userLon, therapistLat, therapistLon);
-
-      if (distance <= maxDistanceKm) {
-        Map<String, dynamic> therapistWithDistance =
-            Map<String, dynamic>.from(therapist);
-        therapistWithDistance['distance'] = distance;
-        therapistWithDistance['latitude'] = therapistLat;
-        therapistWithDistance['longitude'] = therapistLon;
-        therapistsWithDistance.add(therapistWithDistance);
-      }
-    }
-
-    // Sort by distance
-    therapistsWithDistance
-        .sort((a, b) => a['distance'].compareTo(b['distance']));
-
-    return therapistsWithDistance;
-  }
-
-  // Simple distance calculation using Haversine formula
-  double _calculateDistance(
-      double lat1, double lon1, double lat2, double lon2) {
-    const double earthRadius = 6371; // Earth's radius in kilometers
-
-    double dLat = _degreesToRadians(lat2 - lat1);
-    double dLon = _degreesToRadians(lon2 - lon1);
-
-    double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return earthRadius * c;
-  }
-
-  double _degreesToRadians(double degrees) {
-    return degrees * pi / 180;
-  }
-
   void _navigateToTherapistList() async {
     try {
       // Fetch therapists from API
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/therapists'),
+        Uri.parse('http://192.168.2.105:3000/api/therapists'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -381,121 +276,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-  }
-
-  Future<void> _createGoogleMeet() async {
-    setState(() {
-      isCreatingMeet = true;
-    });
-
-    try {
-      final requestBody = jsonEncode({
-        'userId': widget.userId,
-      });
-
-      print(
-          'Making API call to: http://localhost:3000/api/google-meet/create-meet');
-      print('Request body: $requestBody');
-
-      final response = await http.post(
-        Uri.parse('http://localhost:3000/api/google-meet/create-meet'),
-        headers: {'Content-Type': 'application/json'},
-        body: requestBody,
-      );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('Backend response: $data'); // Debug: see what backend returns
-        final meetLink =
-            data['meetLink'] ?? data['link'] ?? data['meetingLink'] ?? '';
-        print('Extracted meet link: $meetLink'); // Debug: see extracted link
-
-        if (meetLink.isNotEmpty) {
-          _showMeetLinkDialog(meetLink);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Failed to generate meeting link. Response: ${response.body}')),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Error: ${response.statusCode} - ${response.body}')),
-        );
-      }
-    } catch (e) {
-      print('Exception occurred: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() {
-        isCreatingMeet = false;
-      });
-    }
-  }
-
-  void _showMeetLinkDialog(String meetLink) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Google Meet Link'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your meeting link:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SelectableText(
-                meetLink,
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Share this link with your therapist to start the meeting.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: meetLink));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Link copied to clipboard!')),
-              );
-            },
-            child: const Text('Copy Link'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // You can add logic to open the link in browser or app
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening meeting...')),
-              );
-              Navigator.of(context).pop();
-            },
-            child: const Text('Join Meeting'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showLocationInfo() {
@@ -540,6 +320,16 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Close'),
             ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                // Refresh location
+                await _fetchUserLocation();
+                // Show updated location
+                _showLocationInfo();
+              },
+              child: const Text('Refresh GPS'),
+            ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -565,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'This might be because:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text('• You\'re testing on localhost'),
+              Text('• You\'re testing on 192.168.2.105'),
               Text('• Network connectivity issues'),
               Text('• Location service is down'),
               SizedBox(height: 16),
@@ -594,6 +384,788 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+  }
+
+  // Build Welcome Section
+  Widget _buildWelcomeSection() {
+    final currentHour = DateTime.now().hour;
+    String greeting = 'Good Morning';
+    String emoji = '🌅';
+
+    if (currentHour >= 12 && currentHour < 17) {
+      greeting = 'Good Afternoon';
+      emoji = '☀️';
+    } else if (currentHour >= 17) {
+      greeting = 'Good Evening';
+      emoji = '🌙';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 32),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "$greeting,",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      "${userDetails?['username'] ?? 'Friend'}!",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          Text(
+            "How are you feeling today? Remember, taking care of your mental health is just as important as your physical health. 💙",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 16,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Quick Actions Section
+  Widget _buildQuickActionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Quick Actions",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.video_call,
+                title: "Start Session",
+                subtitle: "Connect with therapist",
+                color: AppTheme.accentColor,
+                onTap: _navigateToTherapistList,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.calendar_today,
+                title: "My Appointments",
+                subtitle: "View & manage",
+                color: AppTheme.successColor,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          UserAppointmentsScreen(userId: widget.userId),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Build Mood Check Section
+  Widget _buildMoodCheckSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingS),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              const Expanded(
+                child: Text(
+                  "How are you feeling today?",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          const Text(
+            "Track your mood and get personalized insights",
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMoodButton("😊", "Great", Colors.green),
+              _buildMoodButton("🙂", "Good", Colors.blue),
+              _buildMoodButton("😐", "Okay", Colors.orange),
+              _buildMoodButton("😔", "Low", Colors.red),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Action Card Helper
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingL),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingS),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingXS),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Mood Button Helper
+  Widget _buildMoodButton(String emoji, String label, Color color) {
+    return GestureDetector(
+      onTap: () {
+        // Handle mood selection
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("You're feeling $label today! 💙"),
+            backgroundColor: color,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Here you could save the mood to database
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 24),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingXS),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Find Therapist Section
+  Widget _buildFindTherapistSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.accentColor.withOpacity(0.8),
+            AppTheme.primaryColor
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingS),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: const Icon(
+                  Icons.search,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              const Expanded(
+                child: Text(
+                  "Find Your Perfect Therapist",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          const Text(
+            "Connect with licensed professionals who understand your needs",
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _navigateToTherapistList,
+                  icon: const Icon(Icons.search),
+                  label: const Text("Browse All"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _findNearbyTherapists,
+                  icon: const Icon(Icons.location_on),
+                  label: const Text("Find Nearby"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      side: const BorderSide(color: Colors.white, width: 1),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Support Categories Section
+  Widget _buildSupportCategoriesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "What brings you here today?",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingS),
+        const Text(
+          "Choose what you'd like support with",
+          style: TextStyle(
+            fontSize: 14,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingL),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: AppTheme.spacingM,
+          mainAxisSpacing: AppTheme.spacingM,
+          childAspectRatio: 1.2,
+          children: [
+            _buildCategoryCard(
+              icon: Icons.sentiment_very_dissatisfied,
+              title: "Feeling Down",
+              subtitle: "Depression support",
+              color: Colors.blue,
+              onTap: () {
+                Navigator.pushNamed(context, '/mood_journal');
+              },
+            ),
+            _buildCategoryCard(
+              icon: Icons.psychology_alt,
+              title: "Anxious Thoughts",
+              subtitle: "Anxiety management",
+              color: Colors.purple,
+              onTap: () {
+                Navigator.pushNamed(context, '/journaling');
+              },
+            ),
+            _buildCategoryCard(
+              icon: Icons.bedtime,
+              title: "Sleep Issues",
+              subtitle: "Better rest",
+              color: Colors.indigo,
+              onTap: () {
+                // Navigate to sleep resources
+              },
+            ),
+            _buildCategoryCard(
+              icon: Icons.favorite,
+              title: "Relationships",
+              subtitle: "Connection help",
+              color: Colors.pink,
+              onTap: () {
+                // Navigate to relationship resources
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Build Category Card Helper
+  Widget _buildCategoryCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingL),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          boxShadow: AppTheme.softShadow,
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.spacingXS),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Featured Therapists Section
+  Widget _buildFeaturedTherapistsSection(double cardWidth, bool isSmallScreen) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Featured Therapists",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            TextButton(
+              onPressed: _navigateToTherapistList,
+              child: const Text(
+                "View All",
+                style: TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        therapists == null || therapists!.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(AppTheme.spacingXL),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: const Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 48,
+                        color: AppTheme.textLight,
+                      ),
+                      SizedBox(height: AppTheme.spacingM),
+                      Text(
+                        "No therapists available right now",
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 16,
+                        ),
+                      ),
+                      SizedBox(height: AppTheme.spacingS),
+                      Text(
+                        "Check back later or contact support",
+                        style: TextStyle(
+                          color: AppTheme.textLight,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : SizedBox(
+                height: isSmallScreen ? 180 : 200,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: (filteredTherapists ?? therapists)!.length > 5
+                      ? 5
+                      : (filteredTherapists ?? therapists)!.length,
+                  itemBuilder: (context, index) {
+                    final therapist =
+                        (filteredTherapists ?? therapists)![index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: AppTheme.spacingM),
+                      child: _buildTherapistCard(therapist, isSmallScreen),
+                    );
+                  },
+                ),
+              ),
+      ],
+    );
+  }
+
+  // Build Resources Section
+  Widget _buildResourcesSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      decoration: BoxDecoration(
+        gradient: AppTheme.calmGradient,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingS),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: const Icon(
+                  Icons.auto_stories,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              const Expanded(
+                child: Text(
+                  "Mental Health Resources",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          const Text(
+            "Helpful tools and information for your wellness journey",
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+          Row(
+            children: [
+              Expanded(
+                child: _buildResourceButton(
+                  icon: Icons.quiz,
+                  title: "Take Assessment",
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/anxiety_depression_test',
+                      arguments: {'userId': widget.userId},
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              Expanded(
+                child: _buildResourceButton(
+                  icon: Icons.book,
+                  title: "Mood Journal",
+                  onTap: () {
+                    Navigator.pushNamed(context, '/mood_journal');
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Therapist Card Helper
+  Widget _buildTherapistCard(
+      Map<String, dynamic> therapist, bool isSmallScreen) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TherapistDetailScreen(
+              therapist: therapist,
+              userId: widget.userId,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: isSmallScreen ? 160 : 180,
+        padding: const EdgeInsets.all(AppTheme.spacingL),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          boxShadow: AppTheme.softShadow,
+          border: Border.all(color: AppTheme.borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              ),
+              child: const Icon(
+                Icons.person,
+                size: 32,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              therapist['name'] ?? 'Unknown',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppTheme.spacingXS),
+            Text(
+              therapist['specialty'] ?? 'Therapist',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppTheme.spacingS),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  "4.5",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Resource Button Helper
+  Widget _buildResourceButton({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 20),
+      label: Text(title),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.primaryColor,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        ),
+        elevation: 0,
+      ),
+    );
   }
 
   @override
@@ -641,31 +1213,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_today, color: Colors.white),
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      UserAppointmentsScreen(userId: widget.userId),
-                ),
-              );
+              // Show notifications
             },
-            tooltip: 'My Appointments',
+            tooltip: 'Notifications',
           ),
           IconButton(
-            icon: const Icon(Icons.location_on, color: Colors.white),
-            onPressed: _showLocationInfo,
-            tooltip: 'Your Location',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.person_outline, color: Colors.white),
             onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
+              Navigator.pushNamed(context, '/settings');
             },
+            tooltip: 'Profile',
           ),
         ],
       ),
@@ -682,13 +1241,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 )
               : _buildHomeContent(context, screenWidth, isSmallScreen),
-      bottomNavigationBar: _BottomNavBar(),
+      bottomNavigationBar: CustomBottomNav(
+        userId: widget.userId,
+        currentIndex: 0, // Home is always index 0
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Already on home - do nothing
+              break;
+            case 1:
+              Navigator.pushNamed(
+                context,
+                '/analysis',
+                arguments: {'userId': widget.userId},
+              );
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/settings');
+              break;
+          }
+        },
+      ),
     );
   }
 
   Widget _buildHomeContent(
       BuildContext context, double screenWidth, bool isSmallScreen) {
-    final padding = screenWidth * 0.04;
     final cardWidth = isSmallScreen ? screenWidth * 0.35 : 140.0;
 
     return SingleChildScrollView(
@@ -696,563 +1274,34 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(AppTheme.spacingL),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(AppTheme.radiusL),
-              boxShadow: AppTheme.softShadow,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingS),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                      ),
-                      child: const Icon(
-                        Icons.waving_hand,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spacingM),
-                    Expanded(
-                      child: Text(
-                        "Hello, ${userDetails?['username'] ?? 'User'}!",
-                        style: AppTheme.headingMedium
-                            .copyWith(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppTheme.spacingM),
-                Text(
-                  "Welcome to MindEase! Start your wellness journey today.",
-                  style: AppTheme.bodyLarge
-                      .copyWith(color: Colors.white.withOpacity(0.9)),
-                ),
-              ],
-            ),
-          ),
+          // Personal Welcome Section
+          _buildWelcomeSection(),
           const SizedBox(height: AppTheme.spacingL),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.search, color: Colors.grey),
-                SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Search Doctor...",
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: padding),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Icon(
-                      Icons.video_call,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'E-Visit',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Virtual Consultation',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Connect with your therapist through secure video calls',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _navigateToTherapistList,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.search),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Find Therapist',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-                if (meetLink != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            meetLink!,
-                            style: const TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.copy, size: 20),
-                          onPressed: () {
-                            // Add clipboard functionality here
-                          },
-                          color: Colors.blue,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          SizedBox(height: padding),
-          _SectionHeader(
-            title: "Available Therapists",
-            onSeeAll: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AllTherapistsScreen(
-                    therapists: therapists ?? [],
-                    userId: widget.userId,
-                  ),
-                ),
-              );
-            },
-            isSmallScreen: isSmallScreen,
-          ),
-          SizedBox(height: padding / 2),
-          therapists == null || therapists!.isEmpty
-              ? const Center(
-                  child: Text(
-                    "No therapists available",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              : SizedBox(
-                  height: isSmallScreen ? 140 : 160,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: therapists!.length,
-                    itemBuilder: (context, index) {
-                      final therapist = therapists![index];
-                      return Padding(
-                        padding: EdgeInsets.only(right: padding / 2),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TherapistDetailScreen(
-                                  therapist: therapist,
-                                  userId: widget.userId,
-                                ),
-                              ),
-                            );
-                          },
-                          child: _DoctorCard(
-                            name: therapist['name'] ?? 'Unknown',
-                            rating: "4.5",
-                            specialty: therapist['specialty'] ?? 'Therapist',
-                            cardWidth: cardWidth,
-                            isSmallScreen: isSmallScreen,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-          SizedBox(height: padding),
-          Text(
-            "Your Symptoms",
-            style: TextStyle(
-              fontSize: isSmallScreen ? 14 : 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: padding / 2),
-          Wrap(
-            spacing: 8,
-            children: [
-              _SymptomTag(
-                label: "Depression",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DepressionScreen(),
-                    ),
-                  );
-                },
-                isSmallScreen: isSmallScreen,
-              ),
-              _SymptomTag(
-                label: "Anxiety",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AnxietyScreen(),
-                    ),
-                  );
-                },
-                isSmallScreen: isSmallScreen,
-              ),
-              _SymptomTag(
-                label: "Stress",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const StressScreen(),
-                    ),
-                  );
-                },
-                isSmallScreen: isSmallScreen,
-              ),
-              _SymptomTag(
-                label: "Insomnia",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const InsomniaScreen(),
-                    ),
-                  );
-                },
-                isSmallScreen: isSmallScreen,
-              ),
-            ],
-          ),
-          SizedBox(height: padding),
-          _SectionHeader(
-            title: "Top Doctors",
-            isSmallScreen: isSmallScreen,
-          ),
-          SizedBox(height: padding / 2),
-          _TopDoctorCard(
-            name: "Dr. Nadia Syed",
-            rating: "4.7",
-            reviews: "7,932 reviews",
-            specialty: "Therapist | Agha Khan Hospital",
-            isSmallScreen: isSmallScreen,
-          ),
+
+          // Quick Actions Section
+          _buildQuickActionsSection(),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // How are you feeling today?
+          _buildMoodCheckSection(),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Find Your Therapist Section
+          _buildFindTherapistSection(),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Support Categories Section
+          _buildSupportCategoriesSection(),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Featured Therapists Section
+          _buildFeaturedTherapistsSection(cardWidth, isSmallScreen),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Mental Health Resources Section
+          _buildResourcesSection(),
+          const SizedBox(height: AppTheme.spacingL),
         ],
-      ),
-    );
-  }
-}
-
-class _SymptomTag extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-  final bool isSmallScreen;
-
-  const _SymptomTag({
-    required this.label,
-    this.onTap,
-    required this.isSmallScreen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Chip(
-        label: Text(label),
-        backgroundColor: Colors.purple.withOpacity(0.1),
-        labelStyle: TextStyle(
-          color: Colors.purple,
-          fontSize: isSmallScreen ? 12 : 14,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 8 : 12,
-          vertical: isSmallScreen ? 2 : 4,
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback? onSeeAll;
-  final bool isSmallScreen;
-
-  const _SectionHeader({
-    required this.title,
-    this.onSeeAll,
-    required this.isSmallScreen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: isSmallScreen ? 14 : 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        GestureDetector(
-          onTap: onSeeAll,
-          child: Text(
-            "See all",
-            style: TextStyle(
-              fontSize: isSmallScreen ? 12 : 14,
-              color: Colors.blue,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DoctorCard extends StatelessWidget {
-  final String name;
-  final String rating;
-  final String specialty;
-  final double cardWidth;
-  final bool isSmallScreen;
-
-  const _DoctorCard({
-    required this.name,
-    required this.rating,
-    required this.specialty,
-    required this.cardWidth,
-    required this.isSmallScreen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: cardWidth,
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: isSmallScreen ? 25 : 30,
-                child: Image.asset(
-                  'assets/images/user.png',
-                  width: isSmallScreen ? 40 : 50,
-                  height: isSmallScreen ? 40 : 50,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                name,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isSmallScreen ? 12 : 14,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                specialty,
-                style: TextStyle(
-                  fontSize: isSmallScreen ? 10 : 12,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                    size: isSmallScreen ? 14 : 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    rating,
-                    style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TopDoctorCard extends StatelessWidget {
-  final String name;
-  final String rating;
-  final String reviews;
-  final String specialty;
-  final bool isSmallScreen;
-
-  const _TopDoctorCard({
-    required this.name,
-    required this.rating,
-    required this.reviews,
-    required this.specialty,
-    required this.isSmallScreen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: isSmallScreen ? 25 : 30,
-              child: Image.asset(
-                'assets/images/girl.png',
-                width: isSmallScreen ? 40 : 50,
-                height: isSmallScreen ? 40 : 50,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: isSmallScreen ? 14 : 16,
-                    ),
-                  ),
-                  Text(
-                    specialty,
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 10 : 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: isSmallScreen ? 14 : 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$rating ($reviews)",
-                        style: TextStyle(
-                          fontSize: isSmallScreen ? 10 : 12,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.favorite_border, color: Colors.purple),
-          ],
-        ),
       ),
     );
   }
@@ -1562,30 +1611,31 @@ class PhysicalAppointmentScreen extends StatefulWidget {
   });
 
   @override
-  _PhysicalAppointmentScreenState createState() =>
-      _PhysicalAppointmentScreenState();
+  PhysicalAppointmentScreenState createState() =>
+      PhysicalAppointmentScreenState();
 }
 
-class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
+class PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
   DateTime? selectedDateTime;
   int? selectedDuration = 60;
   final TextEditingController notesController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
 
-  Future<void> _selectDateTime(BuildContext context) async {
+  Future<void> _selectDateTime() async {
+    if (!mounted) return;
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
-      if (pickedTime != null) {
+      if (pickedTime != null && mounted) {
         setState(() {
           selectedDateTime = DateTime(
             pickedDate.year,
@@ -1626,7 +1676,7 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/appointments'),
+        Uri.parse('http://192.168.2.105:3000/api/appointments'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': widget.userId,
@@ -1712,7 +1762,7 @@ class _PhysicalAppointmentScreenState extends State<PhysicalAppointmentScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () => _selectDateTime(context),
+                      onPressed: () => _selectDateTime(),
                       child: Text(
                         selectedDateTime == null
                             ? 'Pick Date & Time'
@@ -1821,30 +1871,30 @@ class OnlineAppointmentScreen extends StatefulWidget {
   });
 
   @override
-  _OnlineAppointmentScreenState createState() =>
-      _OnlineAppointmentScreenState();
+  OnlineAppointmentScreenState createState() => OnlineAppointmentScreenState();
 }
 
-class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
+class OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
   DateTime? selectedDateTime;
   int? selectedDuration = 60;
   final TextEditingController notesController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
 
-  Future<void> _selectDateTime(BuildContext context) async {
+  Future<void> _selectDateTime() async {
+    if (!mounted) return;
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
-      if (pickedTime != null) {
+      if (pickedTime != null && mounted) {
         setState(() {
           selectedDateTime = DateTime(
             pickedDate.year,
@@ -1885,7 +1935,7 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/appointments'),
+        Uri.parse('http://192.168.2.105:3000/api/appointments'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': widget.userId,
@@ -2045,7 +2095,7 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () => _selectDateTime(context),
+                      onPressed: () => _selectDateTime(),
                       child: Text(
                         selectedDateTime == null
                             ? 'Pick Date & Time'
@@ -2140,264 +2190,6 @@ class _OnlineAppointmentScreenState extends State<OnlineAppointmentScreen> {
   void dispose() {
     notesController.dispose();
     super.dispose();
-  }
-}
-
-class DepressionScreen extends StatelessWidget {
-  const DepressionScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        title: Text(
-          'Depression',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isSmallScreen ? 18 : 22,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Symptoms',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Persistent sadness or low mood\n'
-                      '- Loss of interest in activities\n'
-                      '- Fatigue or low energy\n'
-                      '- Feelings of worthlessness or guilt\n'
-                      '- Difficulty concentrating\n'
-                      '- Changes in appetite or weight\n'
-                      '- Sleep disturbances (insomnia or oversleeping)\n'
-                      '- Thoughts of self-harm or suicide',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: isSmallScreen ? 10 : 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Causes',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Biological factors (e.g., chemical imbalances in the brain)\n'
-                      '- Genetic predisposition (family history of depression)\n'
-                      '- Traumatic life events (e.g., loss of a loved one)\n'
-                      '- Chronic stress or abuse\n'
-                      '- Medical conditions (e.g., thyroid disorders)\n'
-                      '- Substance abuse',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: isSmallScreen ? 10 : 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Effects',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Impaired relationships and social isolation\n'
-                      '- Decreased work or academic performance\n'
-                      '- Physical health issues (e.g., chronic pain, weakened immune system)\n'
-                      '- Increased risk of substance abuse\n'
-                      '- Higher likelihood of self-harm or suicide\n'
-                      '- Financial difficulties due to reduced productivity',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class AnxietyScreen extends StatelessWidget {
-  const AnxietyScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        title: Text(
-          'Anxiety',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isSmallScreen ? 18 : 22,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Symptoms',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Excessive worry or fear\n'
-                      '- Restlessness or feeling on edge\n'
-                      '- Rapid heartbeat or palpitations\n'
-                      '- Sweating or trembling\n'
-                      '- Difficulty concentrating\n'
-                      '- Muscle tension\n'
-                      '- Sleep disturbances\n'
-                      '- Panic attacks (sudden intense fear)',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: isSmallScreen ? 10 : 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Causes',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Genetic factors (family history of anxiety)\n'
-                      '- Brain chemistry imbalances\n'
-                      '- Traumatic or stressful life events\n'
-                      '- Chronic medical conditions\n'
-                      '- Substance use or withdrawal\n'
-                      '- Personality traits (e.g., perfectionism)',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: isSmallScreen ? 10 : 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Effects',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 5 : 10),
-                    Text(
-                      '- Social isolation and strained relationships\n'
-                      '- Reduced productivity at work or school\n'
-                      '- Physical health issues (e.g., headaches, digestive problems)\n'
-                      '- Increased risk of depression\n'
-                      '- Chronic fatigue from poor sleep\n'
-                      '- Avoidance behaviors impacting daily life',
-                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -2658,70 +2450,67 @@ class InsomniaScreen extends StatelessWidget {
   }
 }
 
-class _BottomNavBar extends StatefulWidget {
-  @override
-  _BottomNavBarState createState() => _BottomNavBarState();
-}
-
-class _BottomNavBarState extends State<_BottomNavBar> {
-  int _currentIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, '/home');
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/journaling');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/mood_tracking');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/analysis');
-        break;
-      case 4:
-        Navigator.pushNamed(context, '/settings');
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    return BottomNavigationBar(
-      currentIndex: _currentIndex,
-      onTap: _onItemTapped,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.note_add), label: 'Journal'),
-        BottomNavigationBarItem(icon: Icon(Icons.mood), label: 'Mood'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.track_changes), label: 'Analysis'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-      ],
-      selectedItemColor: AppTheme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      iconSize: isSmallScreen ? 20 : 24,
-    );
-  }
-}
-
 class AnalysisScreen extends StatelessWidget {
-  const AnalysisScreen({super.key});
+  final String userId;
+
+  const AnalysisScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text('Analysis Screen Placeholder'),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.heroGradient,
+          ),
+        ),
+        title: const Text(
+          "Analysis & Insights",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: const Center(
+        child: Text(
+          'Analysis Screen\nComing Soon!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+      bottomNavigationBar: CustomBottomNav(
+        userId: userId,
+        currentIndex: 1, // Analysis is index 1
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HomeScreen(userId: userId),
+                ),
+                (route) => false,
+              );
+              break;
+            case 1:
+              // Already on analysis - do nothing
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/settings');
+              break;
+          }
+        },
       ),
     );
   }

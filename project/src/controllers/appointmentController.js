@@ -641,7 +641,7 @@ class AppointmentController {
       const oAuth2Client = new google.auth.OAuth2(
         CREDENTIALS.web.client_id,
         CREDENTIALS.web.client_secret,
-        'http://localhost:3000/api/google-meet/oauth2callback'
+        'http://192.168.2.105:3000/api/google-meet/oauth2callback'
       );
 
       oAuth2Client.setCredentials(tokens);

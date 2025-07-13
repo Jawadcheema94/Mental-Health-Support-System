@@ -38,25 +38,54 @@ class _AdminMainDashboardState extends State<AdminMainDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
-        backgroundColor: const Color(0xFF1A237E),
+        title: Text(
+          _titles[_selectedIndex],
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+        ),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: Show notifications
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                // TODO: Show notifications
+              },
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_outlined),
+              onPressed: () => _logout(),
+            ),
           ),
         ],
       ),
       drawer: _buildDrawer(),
-      body: _screens[_selectedIndex],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: _screens[_selectedIndex],
+      ),
     );
   }
 
@@ -66,21 +95,26 @@ class _AdminMainDashboardState extends State<AdminMainDashboard> {
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1A237E), Color(0xFF5E35B1)],
-              ),
+              gradient: AppTheme.heroGradient,
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(
-                  Icons.admin_panel_settings,
-                  size: 48,
-                  color: Colors.white,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings,
+                    size: 32,
+                    color: Colors.white,
+                  ),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 12),
+                const Text(
                   'MindEase Admin',
                   style: TextStyle(
                     color: Colors.white,
@@ -88,7 +122,7 @@ class _AdminMainDashboardState extends State<AdminMainDashboard> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
+                const Text(
                   'Administrative Panel',
                   style: TextStyle(
                     color: Colors.white70,
@@ -239,15 +273,15 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     try {
       // Fetch users count
       final usersResponse =
-          await http.get(Uri.parse('http://localhost:3000/api/users'));
+          await http.get(Uri.parse('http://192.168.2.105:3000/api/users'));
 
       // Fetch therapists count
       final therapistsResponse =
-          await http.get(Uri.parse('http://localhost:3000/api/therapists'));
+          await http.get(Uri.parse('http://192.168.2.105:3000/api/therapists'));
 
       // Fetch appointments count
-      final appointmentsResponse =
-          await http.get(Uri.parse('http://localhost:3000/api/appointments'));
+      final appointmentsResponse = await http
+          .get(Uri.parse('http://192.168.2.105:3000/api/appointments'));
 
       if (usersResponse.statusCode == 200 &&
           therapistsResponse.statusCode == 200 &&
@@ -315,26 +349,26 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                     _buildStatCard(
                       title: 'Total Users',
                       value: '${_stats['totalUsers']}',
-                      icon: Icons.people,
-                      color: Colors.blue,
+                      icon: Icons.people_outline,
+                      color: const Color(0xFF4A90E2),
                     ),
                     _buildStatCard(
                       title: 'Active Therapists',
                       value: '${_stats['activeTherapists']}',
-                      icon: Icons.psychology,
-                      color: Colors.green,
+                      icon: Icons.psychology_outlined,
+                      color: const Color(0xFF50C878),
                     ),
                     _buildStatCard(
                       title: 'Today\'s Appointments',
                       value: '${_stats['todayAppointments']}',
-                      icon: Icons.calendar_today,
-                      color: Colors.orange,
+                      icon: Icons.calendar_today_outlined,
+                      color: const Color(0xFFFF8C42),
                     ),
                     _buildStatCard(
                       title: 'Total Revenue',
                       value: '\$${_stats['totalRevenue'].toStringAsFixed(2)}',
-                      icon: Icons.attach_money,
-                      color: Colors.purple,
+                      icon: Icons.monetization_on_outlined,
+                      color: const Color(0xFF9B59B6),
                     ),
                   ],
                 ),
@@ -353,8 +387,8 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               Expanded(
                 child: _buildQuickActionCard(
                   title: 'Block User',
-                  icon: Icons.block,
-                  color: Colors.red,
+                  icon: Icons.block_outlined,
+                  color: const Color(0xFFE74C3C),
                   onTap: () {
                     // TODO: Quick block user
                   },
@@ -364,8 +398,8 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               Expanded(
                 child: _buildQuickActionCard(
                   title: 'Review Payments',
-                  icon: Icons.payment,
-                  color: Colors.green,
+                  icon: Icons.payment_outlined,
+                  color: const Color(0xFF27AE60),
                   onTap: () {
                     // TODO: Quick payment review
                   },
@@ -384,33 +418,62 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     required IconData icon,
     required Color color,
   }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.1),
+            color.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, color: color, size: 32),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 24,
+                  style: TextStyle(
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
+                    color: color,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
+                color: Colors.grey[700],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -425,24 +488,58 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            color.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),

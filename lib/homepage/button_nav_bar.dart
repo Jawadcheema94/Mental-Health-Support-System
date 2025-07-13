@@ -60,6 +60,10 @@ import 'package:flutter/material.dart';
 import 'package:myapp/theme/app_theme.dart';
 
 class BottomNavBar extends StatefulWidget {
+  final String userId;
+
+  const BottomNavBar({super.key, required this.userId});
+
   @override
   BottomNavBarState createState() => BottomNavBarState();
 }
@@ -77,15 +81,13 @@ class BottomNavBarState extends State<BottomNavBar> {
         Navigator.pushNamed(context, '/home');
         break;
       case 1:
-        Navigator.pushNamed(context, '/journaling');
+        Navigator.pushNamed(context, '/mood_journal');
         break;
       case 2:
-        Navigator.pushNamed(context, '/mood_tracking');
+        Navigator.pushNamed(context, '/analysis',
+            arguments: {'userId': widget.userId});
         break;
       case 3:
-        Navigator.pushNamed(context, '/analysis');
-        break;
-      case 4:
         Navigator.pushNamed(context, '/settings');
         break;
     }
@@ -100,8 +102,8 @@ class BottomNavBarState extends State<BottomNavBar> {
       onTap: _onItemTapped,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.note_add), label: 'Journal'),
-        BottomNavigationBarItem(icon: Icon(Icons.mood), label: 'Mood'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.book_outlined), label: 'Mood Journal'),
         BottomNavigationBarItem(
             icon: Icon(Icons.track_changes), label: 'Analysis'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),

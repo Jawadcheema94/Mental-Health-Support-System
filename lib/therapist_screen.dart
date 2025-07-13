@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:myapp/services/location_service.dart';
 
 import 'package:myapp/login_page.dart'; // Ensure this import is correct
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/components/modern_input.dart';
+import 'package:myapp/components/modern_button.dart';
 
 class CreateTherapistPage extends StatefulWidget {
   const CreateTherapistPage({super.key});
@@ -19,9 +22,20 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
   final _locationController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _hourlyRateController = TextEditingController();
+  final _bioController = TextEditingController();
 
   bool isPasswordVisible = false;
-  bool _isLoading = false; // Added loading state
+  bool _isLoading = false;
+  Map<String, dynamic>? _currentLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
 
   @override
   void dispose() {
@@ -30,7 +44,25 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
     _locationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
+    _experienceController.dispose();
+    _hourlyRateController.dispose();
+    _bioController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      final location = await LocationService.getBestAvailableLocation();
+      if (location != null) {
+        setState(() {
+          _currentLocation = location;
+          _locationController.text = location['address'] ?? 'Current Location';
+        });
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+    }
   }
 
   Future<void> _createTherapist() async {
@@ -43,7 +75,7 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'http://localhost:3000/api/therapists'), // Fixed: http instead of https
+            'http://192.168.2.105:3000/api/therapists'), // Fixed: http instead of https
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -53,23 +85,82 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
           'location': _locationController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),
-          // Add required fields with default values
-          'phone': '+1-555-0000', // Default phone number
-          'experience': 1, // Default experience
+          'phone': _phoneController.text.trim().isNotEmpty
+              ? _phoneController.text.trim()
+              : '+1-555-0000',
+          'experience': int.tryParse(_experienceController.text.trim()) ?? 1,
           'coordinates': {
             'type': 'Point',
-            'coordinates': [0, 0]
-          }, // Default coordinates in GeoJSON format
-          'hourlyRate': 100, // Default hourly rate
-          'bio':
-              'Professional therapist dedicated to helping clients achieve mental wellness.', // Default bio
+            'coordinates': _currentLocation != null
+                ? [
+                    _currentLocation!['longitude'] ?? 0,
+                    _currentLocation!['latitude'] ?? 0
+                  ]
+                : [0, 0]
+          },
+          'hourlyRate':
+              double.tryParse(_hourlyRateController.text.trim()) ?? 100,
+          'bio': _bioController.text.trim().isNotEmpty
+              ? _bioController.text.trim()
+              : 'Professional therapist dedicated to helping clients achieve mental wellness.',
         }),
       );
 
       if (response.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Therapist created successfully!')),
+          // Show success dialog with approval message
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 28),
+                    SizedBox(width: 10),
+                    Text('Registration Successful!'),
+                  ],
+                ),
+                content: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your therapist account has been created successfully!',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    SizedBox(height: 15),
+                    Text(
+                      '⏳ Pending Admin Approval',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Your account is currently pending admin approval. You will be able to login once an administrator approves your account.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    SizedBox(height: 15),
+                    Text(
+                      '📧 You will receive a notification once your account is approved.',
+                      style: TextStyle(fontSize: 14, color: Colors.blue),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.of(context).pop(); // Go back to previous screen
+                    },
+                    child: const Text('OK', style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              );
+            },
           );
         }
         // Clear the form
@@ -81,7 +172,10 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to create therapist.')),
+            SnackBar(
+              content: Text('Failed to create therapist: ${response.body}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -108,32 +202,27 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
             width: double.infinity,
             height: double.infinity,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.fromRGBO(255, 226, 159, 1), // Light yellow
-                  Color(0xFFFFC0CB), // Light pink
-                ],
-              ),
+              gradient: AppTheme.backgroundGradient,
             ),
           ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 80), // Space for better alignment
-                  _header(),
-                  const SizedBox(height: 20),
-                  _inputFields(),
-                  const SizedBox(height: 20),
-                  _createTherapistButton(),
-                  const SizedBox(height: 20),
-                  _alreadyHaveAccount(), // Added this widget
-                ],
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spacingL),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppTheme.spacingXL),
+                    _header(),
+                    const SizedBox(height: AppTheme.spacingXL),
+                    _inputFields(),
+                    const SizedBox(height: AppTheme.spacingL),
+                    _createTherapistButton(),
+                    const SizedBox(height: AppTheme.spacingXL),
+                    _alreadyHaveAccount(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -148,20 +237,37 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
 
   Widget _header() {
     return Column(
-      children: const [
+      children: [
+        // App Logo
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: const Icon(
+            Icons.medical_services,
+            size: 40,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingM),
         Text(
-          "Create Therapist",
-          style: TextStyle(
+          "Join as Therapist",
+          style: AppTheme.headingLarge.copyWith(
             fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: AppTheme.textPrimary,
           ),
           textAlign: TextAlign.center,
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: AppTheme.spacingS),
         Text(
-          "Add a new therapist to the system",
-          style: TextStyle(fontSize: 16, color: Colors.black54),
+          "Create your professional account to help patients",
+          style: AppTheme.bodyLarge.copyWith(
+            color: AppTheme.textSecondary,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -172,43 +278,40 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
+        ModernInput(
+          label: "Full Name",
+          hint: "Enter your full name",
           controller: _nameController,
-          decoration: const InputDecoration(
-            hintText: "Name",
-            prefixIcon: Icon(Icons.person, color: Colors.purple),
-          ),
+          prefixIcon: Icons.person_outline,
           validator: (value) =>
               value == null || value.isEmpty ? "Please enter a name" : null,
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Specialty",
+          hint: "Enter your specialty",
           controller: _specialtyController,
-          decoration: const InputDecoration(
-            hintText: "Specialty",
-            prefixIcon: Icon(Icons.medical_services, color: Colors.purple),
-          ),
+          prefixIcon: Icons.medical_services_outlined,
           validator: (value) => value == null || value.isEmpty
               ? "Please enter a specialty"
               : null,
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Location",
+          hint: "Enter your location",
           controller: _locationController,
-          decoration: const InputDecoration(
-            hintText: "Location",
-            prefixIcon: Icon(Icons.location_on, color: Colors.purple),
-          ),
+          prefixIcon: Icons.location_on_outlined,
           validator: (value) =>
               value == null || value.isEmpty ? "Please enter a location" : null,
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Email Address",
+          hint: "Enter your email",
           controller: _emailController,
-          decoration: const InputDecoration(
-            hintText: "Email",
-            prefixIcon: Icon(Icons.email, color: Colors.purple),
-          ),
+          prefixIcon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
           validator: (value) {
             final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
             return value == null || !emailRegex.hasMatch(value)
@@ -216,27 +319,80 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
                 : null;
           },
         ),
-        const SizedBox(height: 20),
-        TextFormField(
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Password",
+          hint: "Enter your password",
           controller: _passwordController,
+          prefixIcon: Icons.lock_outline,
+          suffixIcon:
+              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+          onSuffixIconPressed: () {
+            setState(() {
+              isPasswordVisible = !isPasswordVisible;
+            });
+          },
           obscureText: !isPasswordVisible,
-          decoration: InputDecoration(
-            hintText: "Password",
-            prefixIcon: const Icon(Icons.lock, color: Colors.purple),
-            suffixIcon: IconButton(
-              icon: Icon(
-                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: Colors.purple,
-              ),
-              onPressed: () {
-                setState(() {
-                  isPasswordVisible = !isPasswordVisible;
-                });
-              },
-            ),
-          ),
           validator: (value) => value == null || value.length < 6
               ? "Password must be at least 6 characters long"
+              : null,
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Phone Number",
+          hint: "Enter your phone number",
+          controller: _phoneController,
+          prefixIcon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+          validator: (value) => value == null || value.isEmpty
+              ? "Please enter a phone number"
+              : null,
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Years of Experience",
+          hint: "Enter years of experience",
+          controller: _experienceController,
+          prefixIcon: Icons.work_outline,
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return "Please enter years of experience";
+            }
+            final experience = int.tryParse(value);
+            if (experience == null || experience < 0) {
+              return "Please enter a valid number";
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Hourly Rate (\$)",
+          hint: "Enter your hourly rate",
+          controller: _hourlyRateController,
+          prefixIcon: Icons.attach_money_outlined,
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return "Please enter your hourly rate";
+            }
+            final rate = double.tryParse(value);
+            if (rate == null || rate <= 0) {
+              return "Please enter a valid rate";
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: AppTheme.spacingM),
+        ModernInput(
+          label: "Bio",
+          hint: "Tell us about yourself and your expertise",
+          controller: _bioController,
+          prefixIcon: Icons.description_outlined,
+          maxLines: 3,
+          validator: (value) => value == null || value.isEmpty
+              ? "Please enter a brief bio"
               : null,
         ),
       ],
@@ -244,25 +400,11 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
   }
 
   Widget _createTherapistButton() {
-    return ElevatedButton(
-      onPressed:
-          _isLoading ? null : _createTherapist, // Disable button when loading
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: AppTheme.primaryColor,
-        elevation: 5,
-      ),
-      child: _isLoading
-          ? const CircularProgressIndicator(
-              color: Colors.black) // Show loading indicator
-          : const Text(
-              "Create Therapist",
-              style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold),
-            ),
+    return PrimaryButton(
+      text: "Create Therapist Account",
+      onPressed: _isLoading ? null : _createTherapist,
+      icon: Icons.medical_services,
+      isLoading: _isLoading,
     );
   }
 
@@ -270,9 +412,11 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           "Already have an account? ",
-          style: TextStyle(color: Colors.black),
+          style: AppTheme.bodyMedium.copyWith(
+            color: AppTheme.textSecondary,
+          ),
         ),
         TextButton(
           onPressed: () {
@@ -281,9 +425,12 @@ class _CreateTherapistPageState extends State<CreateTherapistPage> {
               MaterialPageRoute(builder: (context) => const LoginPage()),
             );
           },
-          child: const Text(
+          child: Text(
             "Login",
-            style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold),
+            style: AppTheme.bodyMedium.copyWith(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

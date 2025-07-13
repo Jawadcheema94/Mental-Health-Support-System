@@ -30,7 +30,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       // Replace with your actual API URL
       final response = await http.post(
-        Uri.parse('http://localhost:3000/api/users/forgot-password'),
+        Uri.parse('http://192.168.2.105:3000/api/users/forgot-password'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -176,7 +176,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('Back to Login'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'Back to Login',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ),
               ],
             ),

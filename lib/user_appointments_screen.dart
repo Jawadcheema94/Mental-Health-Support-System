@@ -33,7 +33,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://localhost:3000/api/appointments/user/${widget.userId}'),
+            'http://192.168.2.105:3000/api/appointments/user/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
       );
 

@@ -34,6 +34,10 @@ const UserSchema = new mongoose.Schema({
   therapistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Therapist' },
   paymentIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }],
   role: { type: String, enum: ['user', 'therapist', 'admin'], required: true },
+  isBlocked: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 // Create 2dsphere index for geospatial queries
@@ -91,6 +95,11 @@ const TherapistSchema = new mongoose.Schema({
   certifications: [String],
   passwordHash: { type: String },
   userIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  isApproved: { type: Boolean, default: false },
+  isBlocked: { type: Boolean, default: false },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String },
 }, {
   timestamps: true
 });
@@ -128,6 +137,36 @@ const AppointmentSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+// Test Result Schema for Anxiety/Depression Tests
+const TestResultSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  testType: {
+    type: String,
+    enum: ['anxiety', 'depression', 'combined'],
+    required: true
+  },
+  score: { type: Number, required: true },
+  maxScore: { type: Number, required: true },
+  severity: {
+    type: String,
+    enum: ['Low', 'Mild', 'Moderate', 'Severe'],
+    required: true
+  },
+  responses: [{
+    questionIndex: { type: Number, required: true },
+    answer: { type: String, required: true },
+    score: { type: Number, required: true }
+  }],
+  testDate: { type: Date, default: Date.now },
+  // Only therapists who have appointments with this user can access results
+  accessibleToTherapists: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Therapist'
+  }]
+}, {
+  timestamps: true
+});
+
 // Export Models
 module.exports = {
   User: mongoose.model('User', UserSchema),
@@ -136,4 +175,5 @@ module.exports = {
   Therapist: mongoose.model('Therapist', TherapistSchema),
   Mood: mongoose.model('Mood', moodSchema),
   Appointment: mongoose.model('Appointment', AppointmentSchema),
+  TestResult: mongoose.model('TestResult', TestResultSchema),
 };

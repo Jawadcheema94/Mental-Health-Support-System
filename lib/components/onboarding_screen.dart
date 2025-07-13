@@ -1,105 +1,167 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/login_page.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/login_page.dart';
+import 'dart:async';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  _OnboardingScreenState createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with TickerProviderStateMixin {
+  PageController _pageController = PageController();
   int currentIndex = 0;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   final List<OnboardingData> onboardingData = [
     OnboardingData(
-      title: 'Welcome to MindEase',
+      title: '🌟 Welcome to MindEase',
       description:
-          'Your journey to mental wellness starts here. Find peace, balance, and clarity in your daily life.',
+          'Your journey to mental wellness starts here. Find peace, balance, and clarity in your daily life with our comprehensive mental health platform.',
       icon: Icons.psychology,
-      gradient: AppTheme.healingGradient,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      accentColor: const Color(0xFFFFD700),
     ),
     OnboardingData(
-      title: 'Connect with Therapists',
+      title: '🤝 Connect with Therapists',
       description:
-          'Book sessions with certified mental health professionals. Online or in-person appointments available.',
+          'Book sessions with certified mental health professionals. Online or in-person appointments available 24/7.',
       icon: Icons.people_alt,
-      gradient: AppTheme.primaryGradient,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      accentColor: const Color(0xFF00E676),
     ),
     OnboardingData(
-      title: 'Track Your Progress',
+      title: '📊 Track Your Progress',
       description:
-          'Monitor your mood, journal your thoughts, and see your mental health journey unfold.',
+          'Monitor your mood, journal your thoughts, and see your mental health journey unfold with AI-powered insights.',
       icon: Icons.trending_up,
-      gradient: AppTheme.calmGradient,
+      gradient: const LinearGradient(
+        colors: [Color(0xFFfc466b), Color(0xFF3f5efb)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      accentColor: const Color(0xFFFF4081),
     ),
     OnboardingData(
-      title: 'Find Your Peace',
+      title: '🧘 Find Your Peace',
       description:
-          'Start your wellness journey today. Every step forward is a step towards a healthier mind.',
+          'Start your wellness journey today. Every step forward is a step towards a healthier, happier mind.',
       icon: Icons.spa,
-      gradient: AppTheme.backgroundGradient,
+      gradient: const LinearGradient(
+        colors: [Color(0xFFffecd2), Color(0xFFfcb69f)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      accentColor: const Color(0xFFFF9800),
     ),
   ];
 
-  void nextPage() {
-    if (currentIndex < onboardingData.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      navigateToLogin();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
+    _animationController.forward();
+
+    // Auto-navigate to login after 5 seconds
+    Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+      }
+    });
   }
 
-  void navigateToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF667eea),
+              Color(0xFF764ba2),
+              Color(0xFF667eea),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: [0.0, 0.5, 1.0],
+          ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Admin Portal Access Button
+              // App Logo and Title Header
               Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/admin');
-                    },
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.all(AppTheme.spacingL),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // App Logo with Theme Colors
+                    Container(
+                      width: 50,
+                      height: 50,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.3)),
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        boxShadow: AppTheme.softShadow,
                       ),
-                      child: Text(
-                        'Admin Portal',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: const Icon(
+                        Icons.psychology,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ),
-                  ),
+                    const SizedBox(width: AppTheme.spacingM),
+                    // App Title with Theme Colors
+                    Text(
+                      'MindEase',
+                      style: AppTheme.headingLarge.copyWith(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                            color: Colors.black.withOpacity(0.1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -109,72 +171,97 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     setState(() {
                       currentIndex = index;
                     });
+                    _animationController.reset();
+                    _animationController.forward();
                   },
                   itemCount: onboardingData.length,
                   itemBuilder: (context, index) {
-                    return OnboardingPage(data: onboardingData[index]);
+                    return OnboardingPage(
+                      data: onboardingData[index],
+                      fadeAnimation: _fadeAnimation,
+                      scaleAnimation: _scaleAnimation,
+                    );
                   },
                 ),
               ),
+              // Bottom Navigation
               Padding(
                 padding: const EdgeInsets.all(AppTheme.spacingL),
-                child: Column(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Page indicators
+                    // Skip Button
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    // Page Indicators
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         onboardingData.length,
-                        (index) => Container(
+                        (index) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           width: currentIndex == index ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
                             color: currentIndex == index
-                                ? AppTheme.primaryColor
-                                : AppTheme.primaryColor.withOpacity(0.3),
+                                ? Colors.white
+                                : Colors.white38,
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingL),
-                    // Next/Get Started button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: nextPage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: AppTheme.spacingM),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusM),
-                          ),
-                          elevation: 0,
+                    // Next/Get Started Button
+                    ElevatedButton(
+                      onPressed: () {
+                        if (currentIndex == onboardingData.length - 1) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                          );
+                        } else {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF667eea),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
                         ),
-                        child: Text(
-                          currentIndex == onboardingData.length - 1
-                              ? 'Begin Your Journey'
-                              : 'Continue',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppTheme.spacingS),
-                    // Skip button
-                    TextButton(
-                      onPressed: navigateToLogin,
                       child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 14,
+                        currentIndex == onboardingData.length - 1
+                            ? 'Get Started'
+                            : 'Next',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -189,51 +276,124 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class OnboardingPage extends StatelessWidget {
+class OnboardingPage extends StatefulWidget {
   final OnboardingData data;
+  final Animation<double> fadeAnimation;
+  final Animation<double> scaleAnimation;
 
-  const OnboardingPage({super.key, required this.data});
+  const OnboardingPage({
+    super.key,
+    required this.data,
+    required this.fadeAnimation,
+    required this.scaleAnimation,
+  });
+
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingL),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              gradient: data.gradient,
-              shape: BoxShape.circle,
-              boxShadow: AppTheme.softShadow,
-            ),
-            child: Icon(
-              data.icon,
-              size: 80,
-              color: Colors.white,
+    return AnimatedBuilder(
+      animation: widget.fadeAnimation,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: widget.fadeAnimation,
+          child: ScaleTransition(
+            scale: widget.scaleAnimation,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingL),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Animated Icon Container
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: Container(
+                            width: 180,
+                            height: 180,
+                            decoration: BoxDecoration(
+                              gradient: widget.data.gradient,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      widget.data.accentColor.withOpacity(0.4),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              widget.data.icon,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 40),
+                    // Title
+                    Text(
+                      widget.data.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    // Description
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        widget.data.description,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          height: 1.6,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: AppTheme.spacingXL),
-          Text(
-            data.title,
-            style: AppTheme.headingLarge.copyWith(
-              color: AppTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppTheme.spacingM),
-          Text(
-            data.description,
-            style: AppTheme.bodyLarge.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -243,11 +403,13 @@ class OnboardingData {
   final String description;
   final IconData icon;
   final LinearGradient gradient;
+  final Color accentColor;
 
   OnboardingData({
     required this.title,
     required this.description,
     required this.icon,
     required this.gradient,
+    required this.accentColor,
   });
 }

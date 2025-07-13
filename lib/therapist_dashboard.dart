@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/therapist_test_results.dart';
 
 class TherapistDashboard extends StatefulWidget {
   final String therapistId;
@@ -72,7 +73,7 @@ class _TherapistDashboardState extends State<TherapistDashboard> {
     });
     try {
       final response = await http.get(Uri.parse(
-          'http://localhost:3000/api/therapists/${widget.therapistId}'));
+          'http://192.168.2.105:3000/api/therapists/${widget.therapistId}'));
       if (response.statusCode == 200) {
         setState(() {
           _therapistData = json.decode(response.body);
@@ -101,11 +102,34 @@ class _TherapistDashboardState extends State<TherapistDashboard> {
     });
     try {
       final response = await http.get(Uri.parse(
-          'http://localhost:3000/api/appointments/therapist/${widget.therapistId}'));
+          'http://192.168.2.105:3000/api/appointments/therapist/${widget.therapistId}'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        // Convert appointment data to patient data
+        Map<String, Patient> uniquePatients = {};
+
+        for (var appointment in data) {
+          String patientName = appointment['patientName'] ?? 'Unknown';
+          String patientEmail = appointment['patientEmail'] ?? '';
+
+          if (!uniquePatients.containsKey(patientEmail)) {
+            // Convert string ID to int hash for Patient model compatibility
+            int patientId =
+                (appointment['id']?.toString() ?? '0').hashCode.abs();
+            uniquePatients[patientEmail] = Patient(
+              id: patientId,
+              name: patientName,
+              age: 25, // Default age since not provided by API
+              nextAppointment: DateTime.tryParse(
+                      appointment['appointmentDate']?.toString() ?? '') ??
+                  DateTime.now(),
+              progress: 0.7, // Default progress
+            );
+          }
+        }
+
         setState(() {
-          _patients = data.map((item) => Patient.fromJson(item)).toList();
+          _patients = uniquePatients.values.toList();
         });
       } else {
         setState(() {
@@ -131,7 +155,7 @@ class _TherapistDashboardState extends State<TherapistDashboard> {
     });
     try {
       final response = await http.get(Uri.parse(
-          'http://localhost:3000/api/appointments/therapist/${widget.therapistId}'));
+          'http://192.168.2.105:3000/api/appointments/therapist/${widget.therapistId}'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
@@ -820,6 +844,30 @@ class _TherapistDashboardState extends State<TherapistDashboard> {
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.white),
         actions: [
+          Container(
+            margin: EdgeInsets.only(right: AppTheme.spacingXS),
+            child: IconButton(
+              icon: Container(
+                padding: EdgeInsets.all(AppTheme.spacingXS),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                ),
+                child: Icon(Icons.assessment, color: Colors.white),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TherapistTestResultsScreen(
+                      therapistId: widget.therapistId,
+                    ),
+                  ),
+                );
+              },
+              tooltip: 'View Patient Test Results',
+            ),
+          ),
           Container(
             margin: EdgeInsets.only(right: AppTheme.spacingXS),
             child: IconButton(
@@ -2226,8 +2274,19 @@ class Appointment {
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
+    // Convert string ID to int hash for model compatibility
+    int appointmentId = 0;
+    if (json['id'] != null) {
+      appointmentId =
+          json['id'] is int ? json['id'] : json['id'].toString().hashCode.abs();
+    } else if (json['_id'] != null) {
+      appointmentId = json['_id'] is int
+          ? json['_id']
+          : json['_id'].toString().hashCode.abs();
+    }
+
     return Appointment(
-      id: json['id'] ?? json['_id'] ?? 0,
+      id: appointmentId,
       patientName: json['patientName'] ?? '',
       time: json['time'] ?? '',
       duration: json['duration'] ?? 0,

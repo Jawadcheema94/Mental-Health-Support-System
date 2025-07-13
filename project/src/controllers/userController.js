@@ -111,6 +111,14 @@ class UserController {
         return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
+      // Check if user is blocked
+      if (user.isBlocked) {
+        return res.status(403).json({
+          error: 'Your account has been blocked. Please contact support.',
+          status: 'blocked'
+        });
+      }
+
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
         return res.status(401).json({ error: 'Invalid email or password.' });

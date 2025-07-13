@@ -7,17 +7,26 @@ class AppointmentManagementScreen extends StatefulWidget {
   const AppointmentManagementScreen({super.key});
 
   @override
-  _AppointmentManagementScreenState createState() => _AppointmentManagementScreenState();
+  _AppointmentManagementScreenState createState() =>
+      _AppointmentManagementScreenState();
 }
 
-class _AppointmentManagementScreenState extends State<AppointmentManagementScreen> {
+class _AppointmentManagementScreenState
+    extends State<AppointmentManagementScreen> {
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
 
-  final List<String> _filterOptions = ['All', 'Scheduled', 'Completed', 'Cancelled', 'Online', 'Physical'];
+  final List<String> _filterOptions = [
+    'All',
+    'Scheduled',
+    'Completed',
+    'Cancelled',
+    'Online',
+    'Physical'
+  ];
 
   @override
   void initState() {
@@ -33,7 +42,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/appointments'),
+        Uri.parse('http://192.168.2.105:3000/api/appointments'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -59,31 +68,34 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredAppointments = _appointments.where((appointment) {
-        final userEmail = appointment['userEmail']?.toString().toLowerCase() ?? '';
-        final therapistEmail = appointment['therapistEmail']?.toString().toLowerCase() ?? '';
+        final userEmail =
+            appointment['userEmail']?.toString().toLowerCase() ?? '';
+        final therapistEmail =
+            appointment['therapistEmail']?.toString().toLowerCase() ?? '';
         final type = appointment['type']?.toString().toLowerCase() ?? '';
         final status = appointment['status']?.toString().toLowerCase() ?? '';
-        
+
         // Text search
-        final matchesSearch = userEmail.contains(query) || 
-                             therapistEmail.contains(query) ||
-                             type.contains(query) ||
-                             status.contains(query);
-        
+        final matchesSearch = userEmail.contains(query) ||
+            therapistEmail.contains(query) ||
+            type.contains(query) ||
+            status.contains(query);
+
         // Filter by status/type
         final matchesFilter = _selectedFilter == 'All' ||
-                             status.contains(_selectedFilter.toLowerCase()) ||
-                             type.contains(_selectedFilter.toLowerCase());
-        
+            status.contains(_selectedFilter.toLowerCase()) ||
+            type.contains(_selectedFilter.toLowerCase());
+
         return matchesSearch && matchesFilter;
       }).toList();
     });
   }
 
-  Future<void> _updateAppointmentStatus(String appointmentId, String newStatus) async {
+  Future<void> _updateAppointmentStatus(
+      String appointmentId, String newStatus) async {
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:3000/api/appointments/$appointmentId'),
+        Uri.parse('http://192.168.2.105:3000/api/appointments/$appointmentId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': newStatus}),
       );
@@ -116,12 +128,14 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
             children: [
               _buildDetailRow('ID', appointment['_id'] ?? 'N/A'),
               _buildDetailRow('User Email', appointment['userEmail'] ?? 'N/A'),
-              _buildDetailRow('Therapist Email', appointment['therapistEmail'] ?? 'N/A'),
+              _buildDetailRow(
+                  'Therapist Email', appointment['therapistEmail'] ?? 'N/A'),
               _buildDetailRow('Type', appointment['type'] ?? 'N/A'),
               _buildDetailRow('Status', appointment['status'] ?? 'N/A'),
               _buildDetailRow('Date', appointment['date'] ?? 'N/A'),
               _buildDetailRow('Time', appointment['time'] ?? 'N/A'),
-              _buildDetailRow('Duration', '${appointment['duration'] ?? 'N/A'} minutes'),
+              _buildDetailRow(
+                  'Duration', '${appointment['duration'] ?? 'N/A'} minutes'),
               _buildDetailRow('Fee', '\$${appointment['fee'] ?? 'N/A'}'),
               if (appointment['meetingLink'] != null)
                 _buildDetailRow('Meeting Link', appointment['meetingLink']),
@@ -272,7 +286,8 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search appointments by user, therapist, or type...',
+                    hintText:
+                        'Search appointments by user, therapist, or type...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -325,7 +340,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
               ],
             ),
           ),
-          
+
           // Appointments List
           Expanded(
             child: _isLoading
@@ -343,7 +358,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                           final appointment = _filteredAppointments[index];
                           final status = appointment['status'] ?? 'Unknown';
                           final type = appointment['type'] ?? 'Unknown';
-                          
+
                           return Card(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -359,19 +374,22 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                               ),
                               title: Text(
                                 '${appointment['userEmail'] ?? 'Unknown User'} → ${appointment['therapistEmail'] ?? 'Unknown Therapist'}',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('${appointment['date']} at ${appointment['time']}'),
+                                  Text(
+                                      '${appointment['date']} at ${appointment['time']}'),
                                   Text('Type: $type | Status: $status'),
                                   Text('Fee: \$${appointment['fee'] ?? 'N/A'}'),
                                 ],
                               ),
                               trailing: IconButton(
                                 icon: const Icon(Icons.info),
-                                onPressed: () => _showAppointmentDetails(appointment),
+                                onPressed: () =>
+                                    _showAppointmentDetails(appointment),
                               ),
                               onTap: () => _showAppointmentDetails(appointment),
                             ),

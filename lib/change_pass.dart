@@ -51,8 +51,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       final endpoint = userType == 'User'
-          ? "http://localhost:3000/api/users/changePassword"
-          : "http://localhost:3000/api/therapists/changePassword";
+          ? "http://192.168.2.105:3000/api/users/changePassword"
+          : "http://192.168.2.105:3000/api/therapists/changePassword";
 
       final response = await http.post(
         Uri.parse(endpoint),

@@ -13,6 +13,60 @@ class TherapistController {
     }
   }
 
+  static async getNearbyTherapists(req, res, next) {
+    try {
+      const { lat, lng, radius = 10 } = req.query;
+
+      if (!lat || !lng) {
+        return res.status(400).json({
+          message: 'Latitude and longitude are required',
+          example: '/api/therapists/nearby?lat=37.7749&lng=-122.4194&radius=10'
+        });
+      }
+
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      const radiusInKm = parseFloat(radius);
+
+      if (isNaN(latitude) || isNaN(longitude) || isNaN(radiusInKm)) {
+        return res.status(400).json({
+          message: 'Invalid coordinates or radius. Must be valid numbers.'
+        });
+      }
+
+      console.log(`Searching for therapists near [${longitude}, ${latitude}] within ${radiusInKm}km`);
+
+      // MongoDB geospatial query to find nearby therapists
+      // Note: MongoDB expects [longitude, latitude] order
+      const nearbyTherapists = await Therapist.find({
+        coordinates: {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude]
+            },
+            $maxDistance: radiusInKm * 1000 // Convert km to meters
+          }
+        },
+        isApproved: true,
+        isBlocked: false
+      }).select('-passwordHash');
+
+      console.log(`Found ${nearbyTherapists.length} nearby therapists`);
+
+      res.json({
+        message: 'Nearby therapists retrieved successfully',
+        therapists: nearbyTherapists,
+        searchCenter: { latitude, longitude },
+        radiusKm: radiusInKm,
+        count: nearbyTherapists.length
+      });
+    } catch (error) {
+      console.error('Error finding nearby therapists:', error);
+      next(error);
+    }
+  }
+
   static async getTherapistById(req, res, next) {
     try {
       const therapist = await Therapist.findById(req.params.id);
@@ -198,15 +252,45 @@ class TherapistController {
       let userOrTherapist;
       if (role === 'therapist') {
         userOrTherapist = await Therapist.findOne({ email });
+
+        // Check if therapist account exists
+        if (!userOrTherapist) {
+          return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
+        // Check if therapist is approved by admin
+        if (!userOrTherapist.isApproved) {
+          return res.status(403).json({
+            error: 'Your therapist account is pending admin approval. Please wait for approval before logging in.',
+            status: 'pending_approval'
+          });
+        }
+
+        // Check if therapist is blocked
+        if (userOrTherapist.isBlocked) {
+          return res.status(403).json({
+            error: 'Your account has been blocked. Please contact support.',
+            status: 'blocked'
+          });
+        }
+
       } else if (role === 'user') {
         userOrTherapist = await User.findOne({ email });
+
+        if (!userOrTherapist) {
+          return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
+        // Check if user is blocked
+        if (userOrTherapist.isBlocked) {
+          return res.status(403).json({
+            error: 'Your account has been blocked. Please contact support.',
+            status: 'blocked'
+          });
+        }
+
       } else {
         return res.status(400).json({ error: 'Invalid role. Must be "user" or "therapist".' });
-      }
-
-      // Check if user/therapist exists
-      if (!userOrTherapist) {
-        return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
       // Verify password
@@ -274,8 +358,61 @@ class TherapistController {
     try {
       const users = await User.find({ therapistId: req.params.id })
         .select('-passwordHash');
-      
+
       res.json(users);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Admin approve therapist
+  static async approveTherapist(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { adminId, approved, rejectionReason } = req.body;
+
+      const updateData = {
+        isApproved: approved,
+        // Only set approvedBy if adminId is a valid ObjectId, otherwise set to null
+        approvedBy: approved && adminId && adminId !== 'admin-user-id' ? adminId : null,
+        approvedAt: approved ? new Date() : null,
+        rejectionReason: approved ? null : rejectionReason,
+        updatedAt: new Date()
+      };
+
+      const therapist = await Therapist.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      ).select('-passwordHash');
+
+      if (!therapist) {
+        return res.status(404).json({ message: 'Therapist not found' });
+      }
+
+      res.json({
+        message: `Therapist ${approved ? 'approved' : 'rejected'} successfully`,
+        therapist,
+        status: approved ? 'approved' : 'rejected'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get pending therapists for admin approval
+  static async getPendingTherapists(req, res, next) {
+    try {
+      const pendingTherapists = await Therapist.find({
+        isApproved: false,
+        isBlocked: false
+      }).select('-passwordHash').sort({ createdAt: -1 });
+
+      res.json({
+        message: 'Pending therapists retrieved successfully',
+        therapists: pendingTherapists,
+        count: pendingTherapists.length
+      });
     } catch (error) {
       next(error);
     }

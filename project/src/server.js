@@ -23,8 +23,8 @@ app.use('/api', routes);
 
 const zoomRoutes = require('./routes/zoom');
 const locationRoutes = require('./routes/location');
-// COMMENTED OUT: Stripe functionality disabled
-// const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+// Initialize Stripe with secret key
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : new Stripe('sk_test_51RCF7D2XdGiu93ZvZQcJgRtZDWfK1mxn2HyNUAMvaOBnbBfwu8opr4OIjcI1yssA92P88ZhXNsCkAODg2YemU3aR00Ej8Ej8Ej');
 
 const CREDENTIALS = require('./config/client_secret_431597357563-si2t5nqkfuac5d4qfvterp8pf8tjihds.apps.googleusercontent.com.json');
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
@@ -33,7 +33,7 @@ const TOKEN_PATH = path.join(__dirname, 'config', 'token.json');
 const oAuth2Client = new google.auth.OAuth2(
   CREDENTIALS.web.client_id,
   CREDENTIALS.web.client_secret,
-  'http://localhost:3000/api/google-meet/oauth2callback'
+  'http://192.168.2.105:3000/api/google-meet/oauth2callback'
 );
 
 let tokens = null;
@@ -78,9 +78,9 @@ app.get('/api/location/ip-geo', async (req, res) => {
     }
 
     if ((ip === '::1' || ip === '127.0.0.1') && !req.query.ip) {
-      // Return a default location for localhost testing
+      // Return a default location for 192.168.2.105 testing
       return res.json({
-        ip: 'localhost',
+        ip: '192.168.2.105',
         country: 'United States',
         region: 'California',
         city: 'San Francisco',
@@ -114,6 +114,47 @@ app.get('/api/location/ip-geo', async (req, res) => {
   } catch (error) {
     console.error('IP geolocation error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update user location
+app.post('/api/location/update', async (req, res) => {
+  try {
+    const { userId, latitude, longitude } = req.body;
+
+    if (!userId || !latitude || !longitude) {
+      return res.status(400).json({
+        error: 'userId, latitude, and longitude are required'
+      });
+    }
+
+    const { User } = require('./models');
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        location: {
+          type: 'Point',
+          coordinates: [longitude, latitude]
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      message: 'Location updated successfully',
+      location: {
+        latitude,
+        longitude
+      }
+    });
+  } catch (error) {
+    console.error('Location update error:', error);
+    res.status(500).json({ error: 'Failed to update location' });
   }
 });
 
@@ -194,58 +235,83 @@ googleMeetRouter.post('/create-meet', async (req, res) => {
 
 app.use('/api/google-meet', googleMeetRouter);
 
-// COMMENTED OUT: Stripe routes disabled
-// const stripeRouter = express.Router();
+// Stripe routes enabled
+const stripeRouter = express.Router();
 
-// // Create a Stripe customer
-// stripeRouter.post('/createcustomer', async (req, res) => {
-//   try {
-//     if (!stripe) {
-//       return res.status(503).json({ error: 'Stripe not configured' });
-//     }
+// Create a Stripe customer
+stripeRouter.post('/createcustomer', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
 
-//     const { email, name } = req.body;
-//     if (!email || !name) {
-//       return res.status(400).json({ error: 'Email and name are required' });
-//     }
+    const { email, name } = req.body;
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Email and name are required' });
+    }
 
-//     const customer = await stripe.customers.create({ email, name });
+    const customer = await stripe.customers.create({ email, name });
 
-//     res.json({ customer });
-//   } catch (error) {
-//     console.error('Create customer error:', error);
-//     res.status(500).json({ error: 'Failed to create customer' });
-//   }
-// });
+    res.json({ customer });
+  } catch (error) {
+    console.error('Create customer error:', error);
+    res.status(500).json({ error: 'Failed to create customer' });
+  }
+});
 
-// // Create a payment intent
-// stripeRouter.post('/create-payment-intent', async (req, res) => {
-//   try {
-//     if (!stripe) {
-//       return res.status(503).json({ error: 'Stripe not configured' });
-//     }
+// Create a setup intent for adding payment methods
+stripeRouter.post('/create-setup-intent', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
 
-//     const { amount, currency = 'usd', customerId } = req.body;
+    const { customer_id } = req.body;
 
-//     if (!amount || amount <= 0) {
-//       return res.status(400).json({ error: 'Valid amount is required' });
-//     }
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customer_id,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+    });
 
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount,
-//       currency,
-//       customer: customerId,
-//       payment_method_types: ['card'],
-//     });
+    res.json({
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id
+    });
+  } catch (error) {
+    console.error('Create setup intent error:', error);
+    res.status(500).json({ error: 'Failed to create setup intent' });
+  }
+});
 
-//     res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
-//   } catch (error) {
-//     console.error('Create payment intent error:', error);
-//     res.status(500).json({ error: 'Failed to create payment intent' });
-//   }
-// });
+// Create a payment intent
+stripeRouter.post('/create-payment-intent', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
 
-// app.use('/api/stripe', stripeRouter);
+    const { amount, currency = 'usd', customerId } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount is required' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency,
+      customer: customerId,
+      payment_method_types: ['card'],
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
+  } catch (error) {
+    console.error('Create payment intent error:', error);
+    res.status(500).json({ error: 'Failed to create payment intent' });
+  }
+});
+
+app.use('/api/stripe', stripeRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
