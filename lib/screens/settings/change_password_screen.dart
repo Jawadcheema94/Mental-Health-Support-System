@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/services/session_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   final String userId;
@@ -36,10 +37,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     });
 
     try {
+      // Get authentication headers with session token
+      final headers = await SessionService.getAuthHeaders();
+
       final response = await http.put(
         Uri.parse(
             'http://192.168.2.105:3000/api/users/${widget.userId}/password'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({
           'currentPassword': _currentPasswordController.text,
           'newPassword': _newPasswordController.text,

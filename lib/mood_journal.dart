@@ -4,12 +4,13 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:myapp/providers/user_provider.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/components/modern_bottom_nav.dart';
 import 'package:intl/intl.dart';
 
 class MoodJournalScreen extends StatefulWidget {
-  final String? userId;
+  final String userId;
 
-  const MoodJournalScreen({super.key, this.userId});
+  const MoodJournalScreen({super.key, required this.userId});
 
   @override
   State<MoodJournalScreen> createState() => _MoodJournalScreenState();
@@ -49,8 +50,7 @@ class _MoodJournalScreenState extends State<MoodJournalScreen>
   }
 
   Future<void> _fetchMoodJournalHistory() async {
-    final userId = widget.userId ??
-        Provider.of<UserProvider>(context, listen: false).userId;
+    final userId = widget.userId;
 
     if (userId.isEmpty) return;
 
@@ -133,8 +133,7 @@ class _MoodJournalScreenState extends State<MoodJournalScreen>
       return;
     }
 
-    final userId = widget.userId ??
-        Provider.of<UserProvider>(context, listen: false).userId;
+    final userId = widget.userId;
 
     if (userId.isEmpty) {
       if (mounted) {
@@ -197,35 +196,39 @@ class _MoodJournalScreenState extends State<MoodJournalScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Journal',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    return ScreenWithBottomNav(
+      currentIndex: 1,
+      userId: widget.userId,
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppBar(
+          title: const Text(
+            'Journal',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          iconTheme: const IconThemeData(color: Colors.white),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: const [
+              Tab(text: 'New Entry'),
+              Tab(text: 'History'),
+            ],
           ),
         ),
-        backgroundColor: AppTheme.primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'New Entry'),
-            Tab(text: 'History'),
+          children: [
+            _buildNewEntryTab(),
+            _buildHistoryTab(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildNewEntryTab(),
-          _buildHistoryTab(),
-        ],
       ),
     );
   }

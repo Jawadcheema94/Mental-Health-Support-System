@@ -1,0 +1,14 @@
+Audio Files for MindEase App Testing:
+
+Current files in assets/audio/:
+- audio-1.wav (Rain sounds) - PRIMARY FILE USED BY ALL MEDITATION SOUNDS
+
+All meditation sounds (Rain, Ocean Waves, Forest, White Noise, Fireplace, Piano)
+use the same audio file (audio-1.wav) for consistent functionality and reduced APK size.
+
+If sounds are not playing, ensure:
+1. Audio files are valid and not corrupted
+2. Files are properly placed in assets/audio/ folder
+3. pubspec.yaml includes assets/ directory
+4. Device volume is turned up
+5. App has audio permissions

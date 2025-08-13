@@ -162,7 +162,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
     try {
       final response = await http.get(
         Uri.parse(
-            'http://192.168.2.105:3000/api/ai-analysis/history/$userId?limit=20'),
+            'http:// 192.168.2.105:3000/api/ai-analysis/history/$userId?limit=20'),
       );
 
       if (response.statusCode == 200) {

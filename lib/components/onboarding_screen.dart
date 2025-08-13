@@ -25,11 +25,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           'Your journey to mental wellness starts here. Find peace, balance, and clarity in your daily life with our comprehensive mental health platform.',
       icon: Icons.psychology,
       gradient: const LinearGradient(
-        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+        colors: [Color(0xFF4A90E2), Color(0xFF50C878)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      accentColor: const Color(0xFFFFD700),
+      accentColor: const Color(0xFF4A90E2),
     ),
     OnboardingData(
       title: '🤝 Connect with Therapists',
@@ -37,11 +37,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           'Book sessions with certified mental health professionals. Online or in-person appointments available 24/7.',
       icon: Icons.people_alt,
       gradient: const LinearGradient(
-        colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+        colors: [Color(0xFF50C878), Color(0xFF87CEEB)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      accentColor: const Color(0xFF00E676),
+      accentColor: const Color(0xFF50C878),
     ),
     OnboardingData(
       title: '📊 Track Your Progress',
@@ -49,11 +49,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           'Monitor your mood, journal your thoughts, and see your mental health journey unfold with AI-powered insights.',
       icon: Icons.trending_up,
       gradient: const LinearGradient(
-        colors: [Color(0xFFfc466b), Color(0xFF3f5efb)],
+        colors: [Color(0xFF87CEEB), Color(0xFF4A90E2)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      accentColor: const Color(0xFFFF4081),
+      accentColor: const Color(0xFF87CEEB),
     ),
     OnboardingData(
       title: '🧘 Find Your Peace',
@@ -61,11 +61,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           'Start your wellness journey today. Every step forward is a step towards a healthier, happier mind.',
       icon: Icons.spa,
       gradient: const LinearGradient(
-        colors: [Color(0xFFffecd2), Color(0xFFfcb69f)],
+        colors: [Color(0xFF50C878), Color(0xFF4A90E2)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      accentColor: const Color(0xFFFF9800),
+      accentColor: const Color(0xFF50C878),
     ),
   ];
 
@@ -111,9 +111,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF667eea),
+              Color(0xFF4A90E2), // Professional blue
+              Color(0xFF50C878), // Emerald green
+              Color(0xFF87CEEB), // Sky blue
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -123,45 +123,48 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // App Logo and Title Header
+              // Large Centered Logo Only
               Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingL),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // App Logo with Theme Colors
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        boxShadow: AppTheme.softShadow,
-                      ),
-                      child: const Icon(
-                        Icons.psychology,
-                        color: Colors.white,
-                        size: 28,
-                      ),
+                padding: const EdgeInsets.symmetric(vertical: 60.0),
+                child: Center(
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 50,
+                          offset: const Offset(0, 25),
+                          spreadRadius: 8,
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          blurRadius: 35,
+                          offset: const Offset(0, -12),
+                          spreadRadius: 3,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF4A90E2).withValues(alpha: 0.4),
+                          blurRadius: 60,
+                          offset: const Offset(0, 30),
+                          spreadRadius: 10,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF50C878).withValues(alpha: 0.3),
+                          blurRadius: 70,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 12,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: AppTheme.spacingM),
-                    // App Title with Theme Colors
-                    Text(
-                      'MindEase',
-                      style: AppTheme.headingLarge.copyWith(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                        shadows: [
-                          Shadow(
-                            offset: const Offset(0, 1),
-                            blurRadius: 2,
-                            color: Colors.black.withOpacity(0.1),
-                          ),
-                        ],
-                      ),
+                    child: Image.asset(
+                      'assets/images/logo1.png',
+                      width: 180,
+                      height: 180,
+                      fit: BoxFit.contain,
                     ),
-                  ],
+                  ),
                 ),
               ),
               Expanded(

@@ -149,32 +149,44 @@ class AppointmentController {
       // Check for any overlapping appointments for this therapist
       const conflictingAppointment = await Appointment.findOne({
         therapistId,
-        status: { $ne: 'cancelled' },
+        status: { $nin: ['cancelled', 'completed'] },
         $or: [
-          // New appointment starts during an existing appointment
+          // Case 1: Existing appointment starts before new appointment but ends after new appointment starts
           {
-            appointmentDate: { $lte: appointmentDateTime },
+            appointmentDate: { $lt: appointmentDateTime },
             $expr: {
               $gt: [
                 { $add: ['$appointmentDate', { $multiply: ['$duration', 60000] }] },
-                appointmentDateTime.getTime()
+                appointmentDateTime
               ]
             }
           },
-          // New appointment ends during an existing appointment
+          // Case 2: Existing appointment starts during new appointment time
           {
-            appointmentDate: { $lt: endTime },
-            appointmentDate: { $gt: appointmentDateTime }
+            appointmentDate: {
+              $gte: appointmentDateTime,
+              $lt: endTime
+            }
+          },
+          // Case 3: New appointment starts exactly when existing appointment starts
+          {
+            appointmentDate: appointmentDateTime
           }
         ]
       });
       
-      // if (conflictingAppointment) {
-      //   return res.status(409).json({ 
-      //     message: 'This time slot is not available',
-      //     conflictingAppointment
-      //   });
-      // }
+      if (conflictingAppointment) {
+        const conflictStart = new Date(conflictingAppointment.appointmentDate);
+        const conflictEnd = new Date(conflictStart.getTime() + conflictingAppointment.duration * 60000);
+        return res.status(409).json({
+          message: 'This time slot is not available. There is already an appointment scheduled.',
+          conflictingAppointment: {
+            start: conflictStart.toISOString(),
+            end: conflictEnd.toISOString(),
+            duration: conflictingAppointment.duration
+          }
+        });
+      }
       
       // Generate a meeting link only for online appointments
       let meetingLink = null;
@@ -634,8 +646,8 @@ class AppointmentController {
 
       const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH));
 
-      // Load Google credentials from the same file as server.js
-      const CREDENTIALS = require('../config/client_secret_431597357563-si2t5nqkfuac5d4qfvterp8pf8tjihds.apps.googleusercontent.com.json');
+      // Load Google credentials from secret.json
+      const CREDENTIALS = require('../config/secret.json');
 
       // Create OAuth2 client
       const oAuth2Client = new google.auth.OAuth2(

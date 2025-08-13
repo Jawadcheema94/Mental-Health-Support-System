@@ -19,14 +19,23 @@ app.use(helmet());
 app.use(cors());
 app.use('/api', routes);
 
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
 
+// Admin portal is now served by Flutter Web at http://localhost:8080
+// All HTML admin portals have been removed and replaced with Flutter Web
+
+// Serve basic admin portal (no login, direct access)
+app.get('/admin-basic', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin-basic.html'));
+});
 
 const zoomRoutes = require('./routes/zoom');
 const locationRoutes = require('./routes/location');
 // Initialize Stripe with secret key
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : new Stripe('sk_test_51RCF7D2XdGiu93ZvZQcJgRtZDWfK1mxn2HyNUAMvaOBnbBfwu8opr4OIjcI1yssA92P88ZhXNsCkAODg2YemU3aR00Ej8Ej8Ej');
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
-const CREDENTIALS = require('./config/client_secret_431597357563-si2t5nqkfuac5d4qfvterp8pf8tjihds.apps.googleusercontent.com.json');
+const CREDENTIALS = require('./config/secret.json');
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 const TOKEN_PATH = path.join(__dirname, 'config', 'token.json');
 
@@ -78,9 +87,9 @@ app.get('/api/location/ip-geo', async (req, res) => {
     }
 
     if ((ip === '::1' || ip === '127.0.0.1') && !req.query.ip) {
-      // Return a default location for 192.168.2.105 testing
+      // Return a default location for  192.168.2.105 testing
       return res.json({
-        ip: '192.168.2.105',
+        ip: ' 192.168.2.105',
         country: 'United States',
         region: 'California',
         city: 'San Francisco',

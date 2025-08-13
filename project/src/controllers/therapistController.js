@@ -1,9 +1,15 @@
 const { Therapist, User } = require('../models');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 // const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 class TherapistController {
+  // Generate a secure session token
+  static generateSessionToken() {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
   static async getAllTherapists(req, res, next) {
     try {
       const therapists = await Therapist.find();
@@ -299,14 +305,24 @@ class TherapistController {
         return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
-      // Prepare response (exclude passwordHash)
+      // Generate session token
+      const sessionToken = TherapistController.generateSessionToken();
+
+      // Update user/therapist with session token and last login time
+      userOrTherapist.sessionToken = sessionToken;
+      userOrTherapist.lastLoginAt = new Date();
+      await userOrTherapist.save();
+
+      // Prepare response (exclude passwordHash and sessionToken)
       const response = userOrTherapist.toObject();
       delete response.passwordHash;
+      delete response.sessionToken;
 
       res.status(200).json({
         message: 'Login successful',
         user: response,
-        // token,
+        sessionToken: sessionToken,
+        expiresIn: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
       });
     } catch (error) {
       console.error(error); // Log error for debugging
@@ -415,6 +431,46 @@ class TherapistController {
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  static async changePassword(req, res) {
+    try {
+      const { id, oldPassword, newPassword } = req.body;
+
+      // Validate input
+      if (!id || !oldPassword || !newPassword) {
+        return res
+          .status(400)
+          .json({ message: "Please provide both old and new passwords." });
+      }
+
+      const therapistId = id;
+
+      // Find therapist by ID
+      const therapist = await Therapist.findById(therapistId);
+
+      if (!therapist) {
+        return res.status(404).json({ message: "Therapist not found." });
+      }
+
+      // Compare the old password
+      const isMatch = await bcrypt.compare(oldPassword, therapist.passwordHash);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Old password is incorrect." });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update the password
+      therapist.passwordHash = hashedPassword;
+      await therapist.save();
+
+      res.status(200).json({ message: "Password updated successfully." });
+    } catch (error) {
+      console.error("Error in changePassword:", error);
+      res.status(500).json({ message: "Server error. Please try again later." });
     }
   }
 }

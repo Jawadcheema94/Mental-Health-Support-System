@@ -38,7 +38,7 @@ class SupportScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Content
               Expanded(
                 child: ListView(
@@ -93,9 +93,9 @@ class SupportScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: AppTheme.spacingL),
-                    
+
                     // FAQ Section
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -137,9 +137,9 @@ class SupportScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: AppTheme.spacingL),
-                    
+
                     // Help Resources
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -185,9 +185,9 @@ class SupportScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: AppTheme.spacingL),
-                    
+
                     // Emergency Support
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -225,13 +225,23 @@ class SupportScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: AppTheme.spacingS),
-                          Text(
-                            '• Emergency Services: 911\n'
-                            '• Crisis Helpline: 1-800-273-8255\n'
-                            '• Text HOME to 741741',
-                            style: AppTheme.bodyMedium.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
+                          _buildEmergencyContactOption(
+                            context,
+                            '🚨 Emergency Services',
+                            '911',
+                            'tel:911',
+                          ),
+                          _buildEmergencyContactOption(
+                            context,
+                            '📞 Crisis Helpline',
+                            '988 (National Suicide Prevention)',
+                            'tel:988',
+                          ),
+                          _buildEmergencyContactOption(
+                            context,
+                            '💬 Crisis Text Line',
+                            'Text HOME to 741741',
+                            'sms:741741',
                           ),
                         ],
                       ),
@@ -246,7 +256,8 @@ class SupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactOption(IconData icon, String title, String subtitle, String description, VoidCallback onTap) {
+  Widget _buildContactOption(IconData icon, String title, String subtitle,
+      String description, VoidCallback onTap) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(AppTheme.spacingS),
@@ -317,7 +328,8 @@ class SupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildResourceItem(IconData icon, String title, String description, VoidCallback onTap) {
+  Widget _buildResourceItem(
+      IconData icon, String title, String description, VoidCallback onTap) {
     return ListTile(
       leading: Icon(
         icon,
@@ -352,15 +364,91 @@ class SupportScreen extends StatelessWidget {
       path: email,
       query: 'subject=MindEase Support Request',
     );
-    
+
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
     }
   }
 
+  Widget _buildEmergencyContactOption(
+      BuildContext context, String title, String subtitle, String action) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () async {
+          // Show confirmation dialog for emergency calls
+          if (action.startsWith('tel:')) {
+            final bool? confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(Icons.phone, color: AppTheme.errorColor),
+                    const SizedBox(width: 8),
+                    const Text('Confirm Emergency Call'),
+                  ],
+                ),
+                content: Text(
+                  'Are you sure you want to call $subtitle?\n\nThis will dial emergency services immediately.',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Call Now'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed != true) return;
+          }
+
+          try {
+            final Uri uri = Uri.parse(action);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Opening $title...'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else {
+              throw 'Could not launch $action';
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Error: Could not open $title. Please dial manually.'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   Future<void> _launchPhone(String phone) async {
     final Uri phoneUri = Uri(scheme: 'tel', path: phone);
-    
+
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
     }
@@ -368,7 +456,7 @@ class SupportScreen extends StatelessWidget {
 
   Future<void> _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
-    
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
@@ -379,7 +467,8 @@ class SupportScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Live Chat'),
-        content: const Text('Live chat feature will be available soon. Please use email or phone support for now.'),
+        content: const Text(
+            'Live chat feature will be available soon. Please use email or phone support for now.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -395,7 +484,8 @@ class SupportScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('User Guide'),
-        content: const Text('User guide feature coming soon. Please contact support for assistance.'),
+        content: const Text(
+            'User guide feature coming soon. Please contact support for assistance.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -411,7 +501,8 @@ class SupportScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Video Tutorials'),
-        content: const Text('Video tutorials will be available soon. Please contact support for help.'),
+        content: const Text(
+            'Video tutorials will be available soon. Please contact support for help.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -427,7 +518,8 @@ class SupportScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Report a Bug'),
-        content: const Text('Please email us at support@mindease.com with details about the bug you encountered.'),
+        content: const Text(
+            'Please email us at support@mindease.com with details about the bug you encountered.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -3,7 +3,7 @@
 // import 'package:http/http.dart' as http;
 
 // class ApiService {
-//   static const String baseUrl = 'http://192.168.2.105:3000'; // Backend URL
+//   static const String baseUrl = 'http:// 192.168.2.105:3000'; // Backend URL
 
 //   // Signup Function
 //   static Future<Map<String, dynamic>> signup(String username, String email, String password, String userType, ) async {
@@ -74,6 +74,14 @@ class ApiService {
     final url = Uri.parse("$baseUrl/api/users/signup");
 
     try {
+      // Convert userType to role format expected by backend
+      String userRole = userType.toLowerCase();
+      if (userRole == 'user') userRole = 'user';
+      if (userRole == 'therapist') userRole = 'therapist';
+
+      print("Sending signup request to: $url");
+      print("Request body: username=$username, email=$email, role=$userRole");
+
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -81,19 +89,33 @@ class ApiService {
           "username": username,
           "email": email,
           "password": password,
-          "userType": userType,
+          "role": userRole,
         }),
       );
 
-      if (response.statusCode == 200) {
+      print("Signup response status: ${response.statusCode}");
+      print("Signup response body: ${response.body}");
+
+      if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        return {"success": true, "message": "Click on Login", data: data};
+        return {
+          "success": true,
+          "message": "Signup successful! Please login with your credentials.",
+          "data": data
+        };
       } else {
         final errorData = jsonDecode(response.body);
-        return {"success": false, "": errorData['']};
+        return {
+          "success": false,
+          "message": errorData['error'] ?? 'Signup failed'
+        };
       }
     } catch (error) {
-      return {"success": false, "": ": $error"};
+      print("Signup error: $error");
+      return {
+        "success": false,
+        "message": "Error connecting to server: $error"
+      };
     }
   }
 }

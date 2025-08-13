@@ -3,13 +3,16 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/forget-password.dart';
-import 'package:myapp/home_page.dart';
+import 'package:myapp/new_home_page.dart';
 import 'package:myapp/signup_page.dart';
 import 'package:myapp/therapist_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/components/modern_input.dart';
 import 'package:myapp/components/modern_button.dart';
+import 'package:myapp/services/session_service.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/providers/ThemeProvider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -122,8 +125,26 @@ class _LoginPageState extends State<LoginPage> {
 
         print("Extracted userId: $userId");
 
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userId', userId);
+        // Extract session token and user info
+        final sessionToken = responseData['sessionToken']?.toString() ?? '';
+        final userEmail = responseData['user']?['email']?.toString() ?? email;
+        final userRole = responseData['user']?['role']?.toString() ?? role;
+
+        // Save session data using SessionService
+        if (sessionToken.isNotEmpty) {
+          await SessionService.saveSession(
+            userId: userId,
+            sessionToken: sessionToken,
+            userRole: userRole,
+            userEmail: userEmail,
+          );
+          print("Session saved with token: ${sessionToken.substring(0, 8)}...");
+        } else {
+          // Fallback to old method if no session token
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userId', userId);
+          print("Fallback: Saved userId to SharedPreferences");
+        }
 
         // Navigate to the appropriate screen
         if (mounted) {
@@ -132,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
             context,
             MaterialPageRoute(
               builder: (context) => userType == 'users'
-                  ? HomeScreen(userId: userId!)
+                  ? NewHomeScreen(userId: userId!)
                   : TherapistDashboard(therapistId: userId!),
             ),
           );
@@ -171,35 +192,39 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingL),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: AppTheme.spacingXL),
-                  _header(),
-                  const SizedBox(height: AppTheme.spacingXXL),
-                  _inputField(),
-                  const SizedBox(height: AppTheme.spacingL),
-                  _forgotPasswordButton(),
-                  const SizedBox(height: AppTheme.spacingM),
-                  _loginButton(context),
-                  const SizedBox(height: AppTheme.spacingXL),
-                  _signup(),
-                ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: themeProvider.getBackgroundGradient(),
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppTheme.spacingL),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppTheme.spacingXL),
+                      _header(),
+                      const SizedBox(height: AppTheme.spacingXXL),
+                      _inputField(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _forgotPasswordButton(),
+                      const SizedBox(height: AppTheme.spacingM),
+                      _loginButton(context),
+                      const SizedBox(height: AppTheme.spacingXL),
+                      _signup(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

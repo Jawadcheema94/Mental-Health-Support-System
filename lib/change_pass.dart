@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:myapp/home_page.dart';
 import 'package:myapp/therapist_dashboard.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/services/session_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   final String userId;
@@ -54,9 +55,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ? "http://192.168.2.105:3000/api/users/changePassword"
           : "http://192.168.2.105:3000/api/therapists/changePassword";
 
+      // Get authentication headers with session token
+      final headers = await SessionService.getAuthHeaders();
+
       final response = await http.post(
         Uri.parse(endpoint),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: jsonEncode({
           "id": userId,
           "oldPassword": oldPassword,

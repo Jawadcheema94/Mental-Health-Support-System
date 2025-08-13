@@ -18,7 +18,7 @@ class AppTheme {
   static const Color warningColor = Color(0xFFF59E0B); // Amber
   static const Color errorColor = Color(0xFFEF4444); // Red
 
-  // Modern Neutral Colors
+  // Light Theme Colors
   static const Color backgroundColor = Color(0xFFFAFAFA); // Light Gray
   static const Color surfaceColor = Color(0xFFFFFFFF);
   static const Color cardColor = Color(0xFFFFFFFF);
@@ -28,6 +28,22 @@ class AppTheme {
   static const Color textLight = Color(0xFF6B7280); // Gray 500
   static const Color textColor = Color(0xFF111827);
   static const Color borderColor = Color(0xFFE5E7EB); // Gray 200
+
+  // Dark Theme Colors
+  static const Color darkBackgroundColor = Color(0xFF0F0F23); // Deep Dark Blue
+  static const Color darkSurfaceColor = Color(0xFF1A1A2E); // Dark Blue Gray
+  static const Color darkCardColor =
+      Color(0xFF16213E); // Slightly lighter dark blue
+
+  static const Color darkTextPrimary = Color(0xFFF9FAFB); // Almost white
+  static const Color darkTextSecondary = Color(0xFFD1D5DB); // Light gray
+  static const Color darkTextLight = Color(0xFF9CA3AF); // Medium gray
+  static const Color darkBorderColor = Color(0xFF374151); // Dark gray border
+
+  // Dark theme accent colors (slightly adjusted for better contrast)
+  static const Color darkPrimaryColor = Color(0xFF818CF8); // Lighter indigo
+  static const Color darkSecondaryColor = Color(0xFFA78BFA); // Lighter purple
+  static const Color darkAccentColor = Color(0xFF22D3EE); // Brighter cyan
 
   // Additional modern colors
   static const Color softPurple = Color(0xFFF5F3FF);
@@ -69,6 +85,43 @@ class AppTheme {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [primaryLight, lightIndigo],
+  );
+
+  // Dark Theme Gradients
+  static const LinearGradient darkPrimaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkPrimaryColor, darkSecondaryColor],
+  );
+
+  static const LinearGradient darkBackgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [darkBackgroundColor, Color(0xFF1A1A2E)],
+  );
+
+  static const LinearGradient darkCardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkCardColor, Color(0xFF1A1A2E)],
+  );
+
+  static const LinearGradient darkHeroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkAccentColor, darkPrimaryColor, darkSecondaryColor],
+  );
+
+  static const LinearGradient darkCalmGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkSecondaryColor, Color(0xFF4C1D95)],
+  );
+
+  static const LinearGradient darkHealingGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [darkPrimaryColor, Color(0xFF3730A3)],
   );
 
   // Spacing
@@ -241,5 +294,203 @@ class AppTheme {
         elevation: 0,
       ),
     );
+  }
+
+  // Dark Theme Data
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: darkPrimaryColor,
+        brightness: Brightness.dark,
+        primary: darkPrimaryColor,
+        secondary: darkSecondaryColor,
+        surface: darkSurfaceColor,
+        error: errorColor,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: darkTextPrimary,
+      ),
+      scaffoldBackgroundColor: darkBackgroundColor,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: TextStyle(
+          color: darkTextPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+        iconTheme: IconThemeData(color: darkTextPrimary),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: darkPrimaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusM),
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: spacingL,
+            vertical: spacingM,
+          ),
+          textStyle: buttonText,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkCardColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusM),
+          borderSide: BorderSide(color: darkBorderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusM),
+          borderSide: BorderSide(color: darkBorderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusM),
+          borderSide: const BorderSide(color: darkPrimaryColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusM),
+          borderSide: const BorderSide(color: errorColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: spacingM,
+          vertical: spacingM,
+        ),
+        hintStyle: const TextStyle(color: darkTextLight),
+        labelStyle: const TextStyle(color: darkTextSecondary),
+      ),
+      cardTheme: CardThemeData(
+        color: darkCardColor,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: darkSurfaceColor,
+        selectedItemColor: darkPrimaryColor,
+        unselectedItemColor: darkTextLight,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: darkCardColor,
+        titleTextStyle: const TextStyle(
+          color: darkTextPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: const TextStyle(
+          color: darkTextSecondary,
+          fontSize: 16,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusL),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: darkCardColor,
+        contentTextStyle: const TextStyle(color: darkTextPrimary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusM),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return darkPrimaryColor;
+          }
+          return darkTextLight;
+        }),
+        trackColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return darkPrimaryColor.withOpacity(0.5);
+          }
+          return darkBorderColor;
+        }),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return darkPrimaryColor;
+          }
+          return Colors.transparent;
+        }),
+        checkColor: WidgetStateProperty.all(Colors.white),
+        side: const BorderSide(color: darkBorderColor),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return darkPrimaryColor;
+          }
+          return darkBorderColor;
+        }),
+      ),
+    );
+  }
+
+  // Helper methods to get theme-aware colors
+  static Color getBackgroundColor(bool isDark) {
+    return isDark ? darkBackgroundColor : backgroundColor;
+  }
+
+  static Color getSurfaceColor(bool isDark) {
+    return isDark ? darkSurfaceColor : surfaceColor;
+  }
+
+  static Color getCardColor(bool isDark) {
+    return isDark ? darkCardColor : cardColor;
+  }
+
+  static Color getTextPrimary(bool isDark) {
+    return isDark ? darkTextPrimary : textPrimary;
+  }
+
+  static Color getTextSecondary(bool isDark) {
+    return isDark ? darkTextSecondary : textSecondary;
+  }
+
+  static Color getTextLight(bool isDark) {
+    return isDark ? darkTextLight : textLight;
+  }
+
+  static Color getBorderColor(bool isDark) {
+    return isDark ? darkBorderColor : borderColor;
+  }
+
+  static Color getPrimaryColor(bool isDark) {
+    return isDark ? darkPrimaryColor : primaryColor;
+  }
+
+  static Color getSecondaryColor(bool isDark) {
+    return isDark ? darkSecondaryColor : secondaryColor;
+  }
+
+  static Color getAccentColor(bool isDark) {
+    return isDark ? darkAccentColor : accentColor;
+  }
+
+  static LinearGradient getPrimaryGradient(bool isDark) {
+    return isDark ? darkPrimaryGradient : primaryGradient;
+  }
+
+  static LinearGradient getBackgroundGradient(bool isDark) {
+    return isDark ? darkBackgroundGradient : backgroundGradient;
+  }
+
+  static LinearGradient getCardGradient(bool isDark) {
+    return isDark ? darkCardGradient : cardGradient;
+  }
+
+  static LinearGradient getHeroGradient(bool isDark) {
+    return isDark ? darkHeroGradient : heroGradient;
   }
 }

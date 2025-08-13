@@ -29,7 +29,8 @@ class _JournalScreenState extends State<JournalScreen> {
   Future<List<Map<String, dynamic>>> _fetchJournalEntries() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.2.105:3000/api/journal/${widget.userId}'),
+        Uri.parse(
+            'http://192.168.2.105:3000/api/journal/user/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
       );
 

@@ -8,6 +8,7 @@ router.get('/nearby', TherapistController.getNearbyTherapists);
 router.get('/:id', TherapistController.getTherapistById);
 router.post('/',  TherapistController.createTherapist);
 router.post('/login', TherapistController.Therapistlogin);
+router.post('/changePassword', TherapistController.changePassword);
 router.put('/:id', validateTherapist, TherapistController.updateTherapist);
 router.put('/:id/block', TherapistController.blockTherapist);
 router.delete('/:id', TherapistController.deleteTherapist);

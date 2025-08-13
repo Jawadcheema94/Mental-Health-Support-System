@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, lowercase: true, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
+  profilePhoto: { type: String }, // Base64 encoded image or file path
   location: {
     type: {
       type: String,
@@ -36,6 +37,8 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'therapist', 'admin'], required: true },
   isBlocked: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
+  sessionToken: { type: String }, // For session management
+  lastLoginAt: { type: Date }, // Track last login time
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -100,6 +103,8 @@ const TherapistSchema = new mongoose.Schema({
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: { type: Date },
   rejectionReason: { type: String },
+  sessionToken: { type: String }, // For session management
+  lastLoginAt: { type: Date }, // Track last login time
 }, {
   timestamps: true
 });
@@ -167,6 +172,32 @@ const TestResultSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Medication Schema
+const MedicationSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  therapistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Therapist', required: true },
+  name: { type: String, required: true },
+  dosage: { type: String, required: true },
+  frequency: { type: String, required: true }, // e.g., "Once daily", "Twice daily"
+  instructions: { type: String },
+  prescribedBy: { type: String }, // Doctor/Therapist name
+  startDate: { type: Date, required: true },
+  endDate: { type: Date },
+  isActive: { type: Boolean, default: true },
+  prescriptionDate: { type: Date, default: Date.now },
+  reminders: [{
+    time: { type: String, required: true }, // e.g., "08:00", "20:00"
+    enabled: { type: Boolean, default: true }
+  }],
+  logs: [{
+    date: { type: Date, required: true },
+    taken: { type: Boolean, required: true },
+    notes: { type: String }
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
 // Export Models
 module.exports = {
   User: mongoose.model('User', UserSchema),
@@ -176,4 +207,5 @@ module.exports = {
   Mood: mongoose.model('Mood', moodSchema),
   Appointment: mongoose.model('Appointment', AppointmentSchema),
   TestResult: mongoose.model('TestResult', TestResultSchema),
+  Medication: mongoose.model('Medication', MedicationSchema),
 };

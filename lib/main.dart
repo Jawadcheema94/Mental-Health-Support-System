@@ -17,6 +17,9 @@ import 'package:myapp/homepage/online_appointment.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/services/stripe_service.dart';
 import 'package:myapp/services/localization_service.dart';
+import 'package:myapp/providers/ThemeProvider.dart';
+import 'package:myapp/screens/splash_screen.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +36,15 @@ void main() async {
   // Initialize localization service
   await LocalizationService().loadSavedLanguage();
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => LocalizationService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -42,78 +53,85 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MindEase',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      // home: MyAppointmentsScreen(userId: '680aad8bdef6a277563a942c'), // Replace with your user ID and type
-      initialRoute: '/', // Initial route to load
-      routes: {
-        '/': (context) => OnboardingScreen(),
-        '/login': (context) => LoginPage(),
-        '/signup': (context) => SignupPage(), // Default screen
-        '/admin': (context) => const AdminLoginScreen(),
-        '/therapist': (context) => TherapistScreen(),
-        // '/mood_tracking': (context) =>
-        //     MoodTrackingScreen(), // Replace 'defaultUserType' with the actual user type
-        '/journaling': (context) => JournalScreen(
-              userId: '',
-            ),
-        '/mood_journal': (context) => MoodJournalScreen(),
-        '/analysis': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
-          return AIAnalysisScreen(
-            userId: args?['userId'] ?? '',
-          );
-        },
-        '/anxiety_depression_test': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
-          return AnxietyDepressionTestScreen(
-            userId: args?['userId'] ?? '',
-          );
-        },
-        '/payment': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
-          return PaymentScreen(
-            userId: args?['userId'] ?? '',
-            amount: args?['amount'] ?? 0.0,
-            description: args?['description'] ?? 'Mental Health Service',
-            therapistId: args?['therapistId'],
-            appointmentId: args?['appointmentId'],
-          );
-        },
-        '/onboarding': (context) => OnboardingScreen(),
-        '/settings': (context) => const SettingsScreen(userId: ''),
-        '/video_call': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return VideoCallScreen(
-            meetingLink: args['meetingLink'],
-            therapistName: args['therapistName'],
-            userId: args['userId'],
-          );
-        },
-        '/physical_appointment': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return PhysicalAppointmentScreen(
-            therapist: args['therapist'],
-            userId: args['userId'],
-          );
-        },
-        '/online_appointment': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return OnlineAppointmentScreen(
-            therapist: args['therapist'],
-            userId: args['userId'],
-          );
-        },
-        '/appointment': (context) => const MyAppointmentsScreen(
-            userId: ''), // Will be handled dynamically
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'MindEase',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode:
+              themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          // home: MyAppointmentsScreen(userId: '680aad8bdef6a277563a942c'), // Replace with your user ID and type
+          initialRoute: '/', // Initial route to load
+          routes: {
+            '/': (context) => const SplashScreen(),
+            '/login': (context) => LoginPage(),
+            '/signup': (context) => SignupPage(), // Default screen
+            '/admin': (context) => const AdminLoginScreen(),
+            '/therapist': (context) => TherapistScreen(),
+            // '/mood_tracking': (context) =>
+            //     MoodTrackingScreen(), // Replace 'defaultUserType' with the actual user type
+            '/journaling': (context) => JournalScreen(
+                  userId: '',
+                ),
+            '/mood_journal': (context) => MoodJournalScreen(userId: ''),
+            '/analysis': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              return AIAnalysisScreen(
+                userId: args?['userId'] ?? '',
+              );
+            },
+            '/anxiety_depression_test': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              return AnxietyDepressionTestScreen(
+                userId: args?['userId'] ?? '',
+              );
+            },
+            '/payment': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              return PaymentScreen(
+                userId: args?['userId'] ?? '',
+                amount: args?['amount'] ?? 0.0,
+                description: args?['description'] ?? 'Mental Health Service',
+                therapistId: args?['therapistId'],
+                appointmentId: args?['appointmentId'],
+              );
+            },
+            '/onboarding': (context) => OnboardingScreen(),
+            '/settings': (context) => const SettingsScreen(userId: ''),
+            '/video_call': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+              return VideoCallScreen(
+                meetingLink: args['meetingLink'],
+                therapistName: args['therapistName'],
+                userId: args['userId'],
+              );
+            },
+            '/physical_appointment': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+              return PhysicalAppointmentScreen(
+                therapist: args['therapist'],
+                userId: args['userId'],
+              );
+            },
+            '/online_appointment': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+              return OnlineAppointmentScreen(
+                therapist: args['therapist'],
+                userId: args['userId'],
+              );
+            },
+            '/appointment': (context) => const MyAppointmentsScreen(
+                userId: ''), // Will be handled dynamically
+          },
+        );
       },
     );
   }

@@ -378,6 +378,8 @@ import 'services/api_service.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/components/modern_input.dart';
 import 'package:myapp/components/modern_button.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/providers/ThemeProvider.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -438,8 +440,8 @@ class _SignupPageState extends State<SignupPage> {
         );
       } else {
         // Display the error message from the API response
-        showAlert("SignUp Successful",
-            result['message'] ?? "Click on the login button");
+        showAlert("Signup Error",
+            result['message'] ?? "Signup failed. Please try again.");
       }
     } catch (e) {
       print("Error during signup: $e");
@@ -465,35 +467,69 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  void _showTherapistInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Therapist Registration'),
+        content: const Text(
+          'You have selected Therapist account type. After completing this signup, you can apply to become a therapist through the app settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateTherapistPage(),
+                ),
+              );
+            },
+            child: const Text("Apply Now"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingL),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: AppTheme.spacingXL),
-                  _header(),
-                  const SizedBox(height: AppTheme.spacingXL),
-                  _inputFields(),
-                  const SizedBox(height: AppTheme.spacingL),
-                  _signupButton(),
-                  const SizedBox(height: AppTheme.spacingXL),
-                  _alreadyHaveAccount(),
-                ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: themeProvider.getBackgroundGradient(),
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppTheme.spacingL),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppTheme.spacingXL),
+                      _header(),
+                      const SizedBox(height: AppTheme.spacingXL),
+                      _inputFields(),
+                      const SizedBox(height: AppTheme.spacingL),
+                      _signupButton(),
+                      const SizedBox(height: AppTheme.spacingXL),
+                      _alreadyHaveAccount(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -583,13 +619,9 @@ class _SignupPageState extends State<SignupPage> {
                 userType = value!;
               });
 
-              // Redirect to a new screen when "Therapist" is selected
+              // Show info dialog when "Therapist" is selected
               if (value == "Therapist") {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CreateTherapistPage()),
-                );
+                _showTherapistInfoDialog();
               }
             },
           ),

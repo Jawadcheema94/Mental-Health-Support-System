@@ -1,54 +1,32 @@
-import 'package:geolocator/geolocator.dart';
+// import 'package:geolocator/geolocator.dart'; // Temporarily disabled
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class LocationService {
   static Future<bool> _handleLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
-      return false;
+    // Fallback implementation without geolocator
+    // Use permission_handler for basic permission check
+    final status = await Permission.location.status;
+    if (status.isDenied) {
+      final result = await Permission.location.request();
+      return result.isGranted;
     }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        // Permissions are denied, next time you could try
-        // requesting permissions again (this is also where
-        // Android's shouldShowRequestPermissionRationale
-        // returned true. According to Android guidelines
-        // your App should show an explanatory UI now.
-        return false;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-      return false;
-    }
-
-    // When we reach here, permissions are granted and we can
-    // continue accessing the position of the device.
-    return true;
+    return status.isGranted;
   }
 
-  static Future<Position?> getCurrentPosition() async {
+  static Future<Map<String, dynamic>?> getCurrentPosition() async {
     final hasPermission = await _handleLocationPermission();
-    if (!hasPermission) return null;
+    if (!hasPermission) {
+      return null;
+    }
 
+    // Fallback: Use IP-based location or return a default location
+    // This is a simplified implementation
     try {
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
+      // You could implement IP-based geolocation here
+      // For now, return null to trigger IP-based location in the calling code
+      return null;
     } catch (e) {
       print('Error getting current position: $e');
       return null;
@@ -97,7 +75,7 @@ class LocationService {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://192.168.2.105:3000/api/therapists/nearby?lat=$lat&lng=$lng&radius=$radius'),
+            'http:// 192.168.2.105:3000/api/therapists/nearby?lat=$lat&lng=$lng&radius=$radius'),
       );
 
       if (response.statusCode == 200) {
@@ -114,7 +92,7 @@ class LocationService {
       String userId, double lat, double lng) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.2.105:3000/api/location/update'),
+        Uri.parse('http:// 192.168.2.105:3000/api/location/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': userId,
@@ -134,14 +112,26 @@ class LocationService {
 
   static double calculateDistance(
       double lat1, double lng1, double lat2, double lng2) {
-    return Geolocator.distanceBetween(lat1, lng1, lat2, lng2) /
-        1000; // Convert to kilometers
+    // Simple distance calculation using Haversine formula
+    const double earthRadius = 6371; // Earth's radius in kilometers
+
+    double dLat = (lat2 - lat1) * (3.14159 / 180);
+    double dLng = (lng2 - lng1) * (3.14159 / 180);
+
+    double a = (dLat / 2) * (dLat / 2) +
+        (lat1 * (3.14159 / 180)) *
+            (lat2 * (3.14159 / 180)) *
+            (dLng / 2) *
+            (dLng / 2);
+
+    double c = 2 * (a * a);
+    return earthRadius * c;
   }
 
   static Future<Map<String, dynamic>?> getIPBasedLocation() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.2.105:3000/api/location/ip-geo'),
+        Uri.parse('http:// 192.168.2.105:3000/api/location/ip-geo'),
       );
 
       if (response.statusCode == 200) {
@@ -156,10 +146,13 @@ class LocationService {
   }
 
   static Future<Map<String, dynamic>?> getBestAvailableLocation() async {
-    // Try GPS first
+    // Try GPS first (currently returns null without geolocator)
     final position = await getCurrentPosition();
-    if (position != null) {
-      return await getLocationDetails(position.latitude, position.longitude);
+    if (position != null &&
+        position['latitude'] != null &&
+        position['longitude'] != null) {
+      return await getLocationDetails(
+          position['latitude'], position['longitude']);
     }
 
     // Fallback to IP-based location
